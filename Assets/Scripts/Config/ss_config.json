@@ -1,0 +1,303 @@
+{
+  "id": "SL-SS",
+  "bets": [
+    0.01,
+    0.05,
+    1,
+    5,
+    10,
+    27
+  ],
+  "name": "Sizzling Seven",
+  "lines": [
+    [
+      1,
+      1,
+      1
+    ],
+    [
+      0,
+      0,
+      0
+    ],
+    [
+      2,
+      2,
+      2
+    ],
+    [
+      0,
+      1,
+      2
+    ],
+    [
+      2,
+      1,
+      0
+    ],
+    [
+      1,
+      2,
+      1
+    ],
+    [
+      1,
+      0,
+      1
+    ],
+    [
+      2,
+      1,
+      2
+    ],
+    [
+      0,
+      1,
+      0
+    ],
+    [
+      0,
+      1,
+      1
+    ],
+    [
+      2,
+      1,
+      1
+    ],
+    [
+      1,
+      0,
+      0
+    ],
+    [
+      1,
+      2,
+      2
+    ],
+    [
+      0,
+      0,
+      1
+    ],
+    [
+      2,
+      2,
+      1
+    ],
+    [
+      1,
+      1,
+      0
+    ],
+    [
+      1,
+      1,
+      2
+    ],
+    [
+      0,
+      2,
+      0
+    ],
+    [
+      2,
+      0,
+      2
+    ],
+    [
+      0,
+      0,
+      2
+    ],
+    [
+      2,
+      2,
+      0
+    ],
+    [
+      0,
+      2,
+      2
+    ],
+    [
+      2,
+      0,
+      0
+    ],
+    [
+      1,
+      0,
+      2
+    ],
+    [
+      1,
+      2,
+      0
+    ],
+    [
+      0,
+      2,
+      1
+    ],
+    [
+      2,
+      0,
+      1
+    ]
+  ],
+  "matrix": {
+    "x": 3,
+    "y": 3
+  },
+  "symbols": [
+    {
+      "id": 0,
+      "name": "Bonus",
+      "group": "scatter",
+      "payout": 0,
+      "reelsInstance": {
+        "0": 2,
+        "1": 2,
+        "2": 2
+      }
+    },
+    {
+      "id": 1,
+      "name": "2xWild",
+      "group": "wild",
+      "payout": 2500,
+      "reelsInstance": {
+        "0": 1,
+        "1": 1,
+        "2": 1
+      }
+    },
+    {
+      "id": 2,
+      "name": "Red7",
+      "group": "sevens",
+      "payout": 250,
+      "reelsInstance": {
+        "0": 3,
+        "1": 3,
+        "2": 3
+      }
+    },
+    {
+      "id": 3,
+      "name": "Blue7",
+      "group": "sevens",
+      "payout": 100,
+      "reelsInstance": {
+        "0": 4,
+        "1": 4,
+        "2": 4
+      }
+    },
+    {
+      "id": 4,
+      "name": "TripleBar",
+      "group": "bars",
+      "payout": 50,
+      "reelsInstance": {
+        "0": 6,
+        "1": 6,
+        "2": 6
+      }
+    },
+    {
+      "id": 5,
+      "name": "DoubleBar",
+      "group": "bars",
+      "payout": 30,
+      "reelsInstance": {
+        "0": 8,
+        "1": 8,
+        "2": 8
+      }
+    },
+    {
+      "id": 6,
+      "name": "SingleBar",
+      "group": "bars",
+      "payout": 5,
+      "reelsInstance": {
+        "0": 10,
+        "1": 10,
+        "2": 10
+      }
+    }
+  ],
+  "features": {
+    "scatter": {
+      "payout": 60,
+      "enabled": true,
+      "minTriggerCount": 3,
+      "scatterSymbolId": 0
+    },
+    "freeGames": {
+      "boxes": [
+        {
+          "id": "red",
+          "prob": 0.25,
+          "spins": 5,
+          "multipliers": [
+            30,
+            15,
+            8
+          ]
+        },
+        {
+          "id": "yellow",
+          "prob": 0.25,
+          "spins": 8,
+          "multipliers": [
+            10,
+            8,
+            5
+          ]
+        },
+        {
+          "id": "blue",
+          "prob": 0.25,
+          "spins": 10,
+          "multipliers": [
+            8,
+            5,
+            3
+          ]
+        },
+        {
+          "id": "green",
+          "prob": 0.25,
+          "spins": 15,
+          "multipliers": [
+            5,
+            3,
+            2
+          ]
+        }
+      ],
+      "enabled": true
+    },
+    "anyBarsPayout": {
+      "payout": 5,
+      "enabled": true,
+      "groupName": "bars"
+    },
+    "anySevensGroup": {
+      "payout": 60,
+      "enabled": true,
+      "groupName": "sevens"
+    },
+    "wildSubstitution": {
+      "enabled": true,
+      "wildSymbolId": 1,
+      "substituteAllExcept": [
+        0
+      ]
+    }
+  },
+  "activeLine": 27
+}

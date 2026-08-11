@@ -17,6 +17,7 @@ public class SlotView : MonoBehaviour
     [SerializeField] private Sprite spriteTripleBar;          // ID: 4
     [SerializeField] private Sprite spriteDoubleBar;          // ID: 5
     [SerializeField] private Sprite spriteSingleBar;          // ID: 6
+    [SerializeField] private Sprite spriteBlank;              // ID: 7 (filler/no-win)
 
     // Internal array built from named sprites
     private Sprite[] symbolSprites;
@@ -81,12 +82,12 @@ public class SlotView : MonoBehaviour
     [Header("Phase 1 Total Win Presentation")]
     [SerializeField] private TMPro.TMP_Text phase1TotalWinText;
 
-    [Header("Win Box Overlays — Col 0..4  (each has 3 rows: 0=top .. 2=bottom)")]
-    [SerializeField] private ColumnOverlays[] winBoxColumns = new ColumnOverlays[5];
+    [Header("Win Box Overlays — Col 0..2  (each has 3 rows: 0=top .. 2=bottom)")]
+    [SerializeField] private ColumnOverlays[] winBoxColumns = new ColumnOverlays[3];
 
-    [Header("Win Animation Objects — Col 0..4  (each has 3 rows, contains ImageAnimation component)")]
+    [Header("Win Animation Objects — Col 0..2  (each has 3 rows, contains ImageAnimation component)")]
     [Tooltip("GameObject references for win animations. Each should have an ImageAnimation component attached.")]
-    [SerializeField] private ColumnOverlays[] winAnimationColumns = new ColumnOverlays[5];
+    [SerializeField] private ColumnOverlays[] winAnimationColumns = new ColumnOverlays[3];
 
 
     [Header("Symbol Info Card")]
@@ -106,6 +107,7 @@ public class SlotView : MonoBehaviour
     private bool isSpinning;
 
     private int VisibleStartIndex => bufferRowsAbove + 2;
+    private int ReelCount => reelTransforms != null ? reelTransforms.Length : 3;
 
     #region Initialization
 
@@ -200,7 +202,7 @@ public class SlotView : MonoBehaviour
     private void BuildSymbolSpriteArray()
     {
         // Build the symbol sprite array from named sprite fields
-        symbolSprites = new Sprite[7];
+        symbolSprites = new Sprite[8];
         symbolSprites[0] = spriteBonus;
         symbolSprites[1] = sprite2xWild;
         symbolSprites[2] = spriteRed7;
@@ -208,6 +210,7 @@ public class SlotView : MonoBehaviour
         symbolSprites[4] = spriteTripleBar;
         symbolSprites[5] = spriteDoubleBar;
         symbolSprites[6] = spriteSingleBar;
+        symbolSprites[7] = spriteBlank;
 
         // Validate
         for (int i = 0; i < symbolSprites.Length; i++)
@@ -219,7 +222,7 @@ public class SlotView : MonoBehaviour
         }
 
         // Build the animation sprite arrays (any entry left empty simply won't animate)
-        animationSpriteArrays = new List<Sprite>[7];
+        animationSpriteArrays = new List<Sprite>[8];
         animationSpriteArrays[0] = animSpritesBonus;
         animationSpriteArrays[1] = animSprites2xWild;
         animationSpriteArrays[2] = animSpritesRed7;
@@ -227,6 +230,7 @@ public class SlotView : MonoBehaviour
         animationSpriteArrays[4] = animSpritesTripleBar;
         animationSpriteArrays[5] = animSpritesDoubleBar;
         animationSpriteArrays[6] = animSpritesSingleBar;
+        // Index 7 (Blank) intentionally left null — filler symbol never animates.
     }
 
     private void InitializeReels()
@@ -236,7 +240,7 @@ public class SlotView : MonoBehaviour
         int rowCount = (gameManager != null && gameManager.gameConfig != null) ? gameManager.gameConfig.rowCount : 3;
 
         currentDisplayMatrix = new List<List<int>>();
-        for (int col = 0; col < 5; col++)
+        for (int col = 0; col < ReelCount; col++)
         {
             var defaultCol = new List<int>();
             for (int r = 0; r < rowCount; r++)
@@ -249,18 +253,18 @@ public class SlotView : MonoBehaviour
 
     internal void SetInitialMatrix(List<List<int>> matrix)
     {
-        if (matrix == null || matrix.Count != 5) return;
+        if (matrix == null || matrix.Count != ReelCount) return;
 
         int rowCount = (gameManager != null && gameManager.gameConfig != null) ? gameManager.gameConfig.rowCount : 3;
 
-        for (int col = 0; col < 5; col++)
+        for (int col = 0; col < ReelCount; col++)
         {
             if (matrix[col].Count != rowCount) return;
         }
 
         currentDisplayMatrix = matrix;
 
-        for (int col = 0; col < 5; col++)
+        for (int col = 0; col < ReelCount; col++)
         {
             SetReelSymbols(col, matrix[col], true);
         }
@@ -319,7 +323,7 @@ public class SlotView : MonoBehaviour
 
     private Sprite GetSymbolSprite(int symbolId)
     {
-        // Validate symbolId range (0-12)
+        // Validate symbolId range (0-7)
         if (symbolId < 0 || symbolId >= symbolSprites.Length)
         {
             Debug.LogWarning($"[SlotView] Invalid symbolId {symbolId}, using default sprite 0. Total sprites: {symbolSprites.Length}");
@@ -350,12 +354,12 @@ public class SlotView : MonoBehaviour
 
         for (int i = 0; i < visibleStartIndex && i < reel.images.Count; i++)
         {
-            reel.images[i].sprite = GetSymbolSprite(Random.Range(2, 7));
+            reel.images[i].sprite = GetSymbolSprite(Random.Range(2, 8));
         }
 
         for (int i = visibleStartIndex + rowCount; i < reel.images.Count; i++)
         {
-            reel.images[i].sprite = GetSymbolSprite(Random.Range(2, 7));
+            reel.images[i].sprite = GetSymbolSprite(Random.Range(2, 8));
         }
     }
 
@@ -374,7 +378,7 @@ public class SlotView : MonoBehaviour
 
         DisableAllOverlays();
 
-        for (int col = 0; col < 5; col++)
+        for (int col = 0; col < ReelCount; col++)
         {
             RandomizeBufferSprites(col);
             StartReelCycleWithDelay(col, col * reelStartStagger);
@@ -462,7 +466,7 @@ public class SlotView : MonoBehaviour
         if (!isSpinning)
         {
             currentDisplayMatrix = resultMatrix;
-            for (int col = 0; col < 5; col++)
+            for (int col = 0; col < ReelCount; col++)
             {
                 SetReelSymbols(col, resultMatrix[col], false);
             }
@@ -481,20 +485,21 @@ public class SlotView : MonoBehaviour
         // ever called, so there's no need for a separate discrete-cycle-count gate here.
         float stagger = isQuickStop ? quickStopStagger : reelStopStagger;
 
-        for (int col = 0; col < 5; col++)
+        for (int col = 0; col < ReelCount; col++)
         {
             float delay = col * stagger;
             StartCoroutine(StopSingleReel(col, resultMatrix[col], delay, isQuickStop));
         }
 
+        float lastColumnDelay = (ReelCount - 1) * stagger;
         float longestStopTime;
         if (isQuickStop)
         {
-            longestStopTime = (4 * stagger) + quickStopDuration;
+            longestStopTime = lastColumnDelay + quickStopDuration;
         }
         else
         {
-            longestStopTime = (4 * stagger) + stopOvershootDuration + stopSettleDuration;
+            longestStopTime = lastColumnDelay + stopOvershootDuration + stopSettleDuration;
         }
 
         yield return new WaitForSeconds(longestStopTime);
@@ -591,7 +596,7 @@ public class SlotView : MonoBehaviour
         if (!isSpinning)
         {
             currentDisplayMatrix = resultMatrix;
-            for (int col = 0; col < 5; col++)
+            for (int col = 0; col < ReelCount; col++)
             {
                 if (col < reelTransforms.Length)
                 {
@@ -643,7 +648,7 @@ public class SlotView : MonoBehaviour
         int actualScatterId = gameManager?.gameConfig != null ? gameManager.gameConfig.scatterSymbolId : -1;
         if (actualScatterId < 0) return;
         
-        for (int col = 0; col < 5; col++)
+        for (int col = 0; col < ReelCount; col++)
         {
             for (int row = 0; row < currentDisplayMatrix[col].Count; row++)
             {
@@ -670,7 +675,7 @@ public class SlotView : MonoBehaviour
         int completedCount = 0;
         int targetLoops = 2; // Exactly 2 loops of full animation
 
-        for (int col = 0; col < 5; col++)
+        for (int col = 0; col < ReelCount; col++)
         {
             if (col >= currentDisplayMatrix.Count) continue;
             for (int row = 0; row < currentDisplayMatrix[col].Count; row++)
@@ -752,7 +757,7 @@ public class SlotView : MonoBehaviour
         KillWinTweens();
         AudioManager.Instance?.PlayWinLinePhase1Start();
 
-        for (int col = 0; col < 5; col++)
+        for (int col = 0; col < ReelCount; col++)
         {
             if (col >= currentDisplayMatrix.Count) continue;
             for (int row = 0; row < currentDisplayMatrix[col].Count; row++)
@@ -928,8 +933,8 @@ public class SlotView : MonoBehaviour
                 if (winLines.Count > 1)
                 {
                     int firstFlatIndex = winLine.positions[0];
-                    int firstRow = firstFlatIndex / 5;
-                    int firstCol = firstFlatIndex % 5;
+                    int firstRow = firstFlatIndex / ReelCount;
+                    int firstCol = firstFlatIndex % ReelCount;
                     ShowWinLineTextOnIcon(firstCol, firstRow, winLine.winAmount);
                 }
 
@@ -952,10 +957,10 @@ public class SlotView : MonoBehaviour
 
         foreach (int flatIndex in flatPositions)
         {
-            int row = flatIndex / 5;
-            int col = flatIndex % 5;
+            int row = flatIndex / ReelCount;
+            int col = flatIndex % ReelCount;
 
-            if (col < 0 || col >= 5 || row < 0 || row >= rowLimit) continue;
+            if (col < 0 || col >= ReelCount || row < 0 || row >= rowLimit) continue;
 
             EnableWinBox(col, row);
 

@@ -227,6 +227,17 @@
         "1": 10,
         "2": 10
       }
+    },
+    {
+      "id": 7,
+      "name": "Blank",
+      "group": "blank",
+      "payout": 0,
+      "reelsInstance": {
+        "0": 10,
+        "1": 10,
+        "2": 10
+      }
     }
   ],
   "features": {

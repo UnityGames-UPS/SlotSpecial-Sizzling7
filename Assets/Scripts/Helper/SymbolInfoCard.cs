@@ -80,18 +80,21 @@ public class SymbolInfoCard : MonoBehaviour
             rectTransform = GetComponent<RectTransform>();
 
         // 1. Position Card based on Reel / Slot Column Index
-        // Columns 0 & 1 (1st and 2nd slot): RIGHT side of symbol
-        // Columns 2, 3, 4 (3rd, 4th, 5th slot): LEFT side of symbol
+        // Columns in the left half of the reel set: RIGHT side of symbol
+        // Columns in the right half: LEFT side of symbol
+        int reelCount = (gameManager != null && gameManager.gameConfig != null) ? gameManager.gameConfig.reelCount : 5;
+        bool isLeftHalf = colIndex < reelCount / 2;
+
         Vector3 symbolWorldPos = symbolRect != null ? symbolRect.position : transform.position;
         Vector3 localPos = transform.parent != null ? transform.parent.InverseTransformPoint(symbolWorldPos) : symbolWorldPos;
 
-        float offsetDir = (colIndex < 2) ? Mathf.Abs(xSpacing) : -Mathf.Abs(xSpacing);
+        float offsetDir = isLeftHalf ? Mathf.Abs(xSpacing) : -Mathf.Abs(xSpacing);
         rectTransform.localPosition = new Vector3(localPos.x + offsetDir, localPos.y + yOffset, localPos.z);
 
         // 2. Change Sprite Based on Side
         if (cardBgImage != null)
         {
-            Sprite targetSprite = (colIndex < 2) ? GetRightSideSprite() : GetLeftSideSprite();
+            Sprite targetSprite = isLeftHalf ? GetRightSideSprite() : GetLeftSideSprite();
             if (targetSprite != null)
             {
                 cardBgImage.sprite = targetSprite;

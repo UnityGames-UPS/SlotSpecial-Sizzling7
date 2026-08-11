@@ -710,8 +710,8 @@ public class GameManager : MonoBehaviour
 
     internal double GetTotalPay()
     {
-        double divisor = (gameConfig != null && gameConfig.creditDivisor > 0) ? gameConfig.creditDivisor : 25;
-        return currentBetAmount * divisor;
+        double activeLine = (gameConfig != null && gameConfig.activeLine > 0) ? gameConfig.activeLine : 27;
+        return currentBetAmount * activeLine;
     }
 
     internal bool CanAffordBet()

@@ -137,29 +137,22 @@ public class SymbolInfoCard : MonoBehaviour
             symbolInfo = gameManager.gameConfig.symbols.Find(s => s.id == symbolId);
         }
 
-        string symbolNameLower = symbolInfo != null ? (symbolInfo.name ?? "").ToLower() : "";
+        // Special symbols are determined purely from server-driven config, not hardcoded IDs.
+        bool isWild = symbolInfo != null && symbolInfo.isWild;
+        bool isScatter = symbolInfo != null && symbolInfo.isScatter;
 
-        // Check if special symbol: Wild (ID 10), USpin (ID 11), MoneyBag (ID 12)
-        bool isWild = (symbolId == 10) || (symbolInfo != null && symbolInfo.isWild) || symbolNameLower.Contains("wild");
-        bool isUSpin = (symbolId == 11) || symbolNameLower.Contains("uspin");
-        bool isMoneyBag = (symbolId == 12) || symbolNameLower.Contains("moneybag") || symbolNameLower.Contains("money bag");
-
-        if (isWild || isUSpin || isMoneyBag)
+        if (isWild || isScatter)
         {
             // SPECIAL SYMBOL: Text alignment CENTER
             infoText.alignment = TextAlignmentOptions.Center;
             infoText.enableWordWrapping = true;
-if (isUSpin)
+if (isScatter)
 {
-    infoText.text = "3 U-Spin symbols trigger the Wheel Bonus feature.";
-}
-else if (isMoneyBag)
-{
-    infoText.text = "3 Money Bag symbols trigger the Money Bag Collect feature.";
+    infoText.text = "3 or more Bonus symbols trigger Free Games.";
 }
 else if (isWild)
 {
-    infoText.text = "Substitutes for all symbols except U-Spin and Money Bag.";
+    infoText.text = "Substitutes for other symbols to complete winning combinations.";
 }
         }
         else

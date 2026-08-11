@@ -266,17 +266,17 @@ public class GameConfig
 {
     public int reelCount = 5;
     public int rowCount = 3;
-    public int symbolCount = 13;
+    public int symbolCount = 7;
     public int paylineCount = 243;
     public List<List<int>> paylines;
     public List<double> availableBets;
     public List<SymbolInfo> symbols;
 
     // Wild configuration
-    public int wildSymbolId = 10;      // Base wild (10)
+    public int wildSymbolId = 1;       // 2xWild (1)
 
     // Scatter configuration
-    public int scatterSymbolId = 11;   // USpin is ID 11
+    public int scatterSymbolId = 0;    // Bonus is ID 0
 
     public int betMultiplier = 1;      // CNY is cash-bet based, multiplier default is 1
     public double creditDivisor = 25;  // Credit divisor sent in initData
@@ -481,9 +481,10 @@ public static class InitDataConverter
                 name = serverSymbol.name,
                 multipliers = new List<double>(),
                 isWild = serverSymbol.name.ToLower().Contains("wild"),
-                isScatter = serverSymbol.name.ToLower().Contains("scatter") || 
-                            serverSymbol.name.ToLower().Contains("uspin") || 
-                            serverSymbol.name.ToLower().Contains("moneybag"),
+                isScatter = serverSymbol.name.ToLower().Contains("scatter") ||
+                            serverSymbol.name.ToLower().Contains("uspin") ||
+                            serverSymbol.name.ToLower().Contains("moneybag") ||
+                            serverSymbol.name.ToLower().Contains("bonus"),
                 minMatch = serverSymbol.minMatch
             };
 
@@ -501,7 +502,7 @@ public static class InitDataConverter
             {
                 config.wildSymbolId = symbolInfo.id;
             }
-            if (symbolInfo.isScatter && symbolInfo.name.ToLower().Contains("uspin"))
+            if (symbolInfo.isScatter)
             {
                 config.scatterSymbolId = symbolInfo.id;
             }

@@ -9,7 +9,6 @@ public class GameManager : MonoBehaviour
     [SerializeField] internal UIManager uiManager;
     [SerializeField] private PopupManager popupManager;
     [SerializeField] private SlotView slotView;
-    [SerializeField] internal WheelSpinController wheelController;
 
     [Header("Spin Settings")]
     [SerializeField] private float normalSpinDuration = 3.5f;
@@ -70,11 +69,6 @@ public class GameManager : MonoBehaviour
         if (initialMatrix != null && slotView != null)
         {
             slotView.SetInitialMatrix(initialMatrix);
-        }
-
-        if (wheelController != null && gameConfig.uSpinSegments != null)
-        {
-            wheelController.OverrideSegmentsWithData(gameConfig.uSpinSegments);
         }
 
         isInitialized = true;
@@ -183,7 +177,7 @@ public class GameManager : MonoBehaviour
             else if (!isInFreeSpins)
             {
                 stopRequested = true;
-                uiManager.DisableSpinButtonDuringStop();
+                uiManager.SetSpinStopButtonStates(isSpinningState: true, isInteractable: false);
             }
         }
     }
@@ -364,18 +358,6 @@ public class GameManager : MonoBehaviour
             yield return null;
         }
 
-        if (lastResult != null && lastResult.uSpinData != null && lastResult.uSpinData.triggered)
-        {
-            yield return StartCoroutine(DelayUSpinTriggerResult());
-            yield break;
-        }
-
-        if (lastResult != null && lastResult.moneyBagData != null && lastResult.moneyBagData.triggered)
-        {
-            yield return StartCoroutine(DelayMoneyBagTriggerResult());
-            yield break;
-        }
-
         if (lastResult != null && lastResult.freeSpinData != null && lastResult.freeSpinData.isTriggered && !isInFreeSpins)
         {
             yield return StartCoroutine(DelayScatterTriggerResult());
@@ -409,51 +391,6 @@ public class GameManager : MonoBehaviour
         // Wait for scatter hit animations to play
         yield return new WaitForSeconds(3.5f);
         ProcessSpinResult();
-    }
-
-    private IEnumerator DelayUSpinTriggerResult()
-    {
-        AudioManager.Instance?.Play3UspinWinLineLoop();
-
-        bool animFinished = false;
-        if (slotView != null)
-        {
-            slotView.AnimateUSpinWin(() =>
-            {
-                animFinished = true;
-            });
-        }
-        else
-        {
-            animFinished = true;
-        }
-
-        yield return new WaitUntil(() => animFinished);
-
-        uiManager.TriggerUSpinBonus(lastResult.uSpinData, () =>
-        {
-            AudioManager.Instance?.Stop3UspinWinLineLoop();
-            lastResult.uSpinData.triggered = false;
-            ResumeAfterSpecialFeature();
-        });
-    }
-
-    private IEnumerator DelayMoneyBagTriggerResult()
-    {
-        AudioManager.Instance?.Play3UspinWinLineLoop();
-
-        if (slotView != null)
-        {
-            slotView.AnimateMoneyBagWin();
-        }
-
-        yield return new WaitForSeconds(3.5f);
-
-        uiManager.TriggerMoneyBagBonus(lastResult.moneyBagData, () =>
-        {
-            lastResult.moneyBagData.triggered = false;
-            ResumeAfterSpecialFeature();
-        });
     }
 
     private IEnumerator DelayBeforeNextRound()
@@ -796,7 +733,7 @@ public class GameManager : MonoBehaviour
     {
         if (matrix == null) return false;
 
-        int scatterId = gameConfig != null ? gameConfig.scatterSymbolId : 12;
+        int scatterId = gameConfig != null ? gameConfig.scatterSymbolId : 0;
 
         foreach (var col in matrix)
         {

@@ -10,26 +10,26 @@ public class SlotView : MonoBehaviour
     [SerializeField] private GameManager gameManager;
 
     [Header("Symbol Sprites - Assign by Name")]
-    [SerializeField] private Sprite spriteLantern;           // ID: 0
-    [SerializeField] private Sprite spriteHammer;            // ID: 1
-    [SerializeField] private Sprite spriteMoneyPouch;         // ID: 2
-    [SerializeField] private Sprite spriteCoin;              // ID: 3
-    [SerializeField] private Sprite spriteA;                 // ID: 4
-    [SerializeField] private Sprite spriteK;                 // ID: 5
-    [SerializeField] private Sprite spriteQ;                 // ID: 6
-    [SerializeField] private Sprite spriteJ;                 // ID: 7
-    [SerializeField] private Sprite spriteTen;               // ID: 8
-    [SerializeField] private Sprite spriteNine;              // ID: 9
-    [SerializeField] private Sprite spriteWild;              // ID: 10
-    [SerializeField] private Sprite spriteUSpin;             // ID: 11
-    [SerializeField] private Sprite spriteMoneyBag;          // ID: 12
+    [SerializeField] private Sprite spriteBonus;              // ID: 0 (scatter)
+    [SerializeField] private Sprite sprite2xWild;             // ID: 1 (wild)
+    [SerializeField] private Sprite spriteRed7;               // ID: 2
+    [SerializeField] private Sprite spriteBlue7;              // ID: 3
+    [SerializeField] private Sprite spriteTripleBar;          // ID: 4
+    [SerializeField] private Sprite spriteDoubleBar;          // ID: 5
+    [SerializeField] private Sprite spriteSingleBar;          // ID: 6
 
     // Internal array built from named sprites
     private Sprite[] symbolSprites;
 
     [Header("Win Animation Sprite Arrays")]
-    [Tooltip("Animation sprite arrays for symbols. USpin = ID 11")]
-    [SerializeField] private List<Sprite> animSpritesUSpin;           // ID: 11
+    [Tooltip("Optional per-symbol win-animation frame sequences. Leave any empty until real art exists — animation playback already no-ops safely on an empty list.")]
+    [SerializeField] private List<Sprite> animSpritesBonus;          // ID: 0
+    [SerializeField] private List<Sprite> animSprites2xWild;         // ID: 1
+    [SerializeField] private List<Sprite> animSpritesRed7;           // ID: 2
+    [SerializeField] private List<Sprite> animSpritesBlue7;          // ID: 3
+    [SerializeField] private List<Sprite> animSpritesTripleBar;      // ID: 4
+    [SerializeField] private List<Sprite> animSpritesDoubleBar;      // ID: 5
+    [SerializeField] private List<Sprite> animSpritesSingleBar;      // ID: 6
 
     // Internal array of animation sprite lists
     private List<Sprite>[] animationSpriteArrays;
@@ -200,20 +200,14 @@ public class SlotView : MonoBehaviour
     private void BuildSymbolSpriteArray()
     {
         // Build the symbol sprite array from named sprite fields
-        symbolSprites = new Sprite[13];
-        symbolSprites[0] = spriteLantern;
-        symbolSprites[1] = spriteHammer;
-        symbolSprites[2] = spriteMoneyPouch;
-        symbolSprites[3] = spriteCoin;
-        symbolSprites[4] = spriteA;
-        symbolSprites[5] = spriteK;
-        symbolSprites[6] = spriteQ;
-        symbolSprites[7] = spriteJ;
-        symbolSprites[8] = spriteTen;
-        symbolSprites[9] = spriteNine;
-        symbolSprites[10] = spriteWild;
-        symbolSprites[11] = spriteUSpin;
-        symbolSprites[12] = spriteMoneyBag;
+        symbolSprites = new Sprite[7];
+        symbolSprites[0] = spriteBonus;
+        symbolSprites[1] = sprite2xWild;
+        symbolSprites[2] = spriteRed7;
+        symbolSprites[3] = spriteBlue7;
+        symbolSprites[4] = spriteTripleBar;
+        symbolSprites[5] = spriteDoubleBar;
+        symbolSprites[6] = spriteSingleBar;
 
         // Validate
         for (int i = 0; i < symbolSprites.Length; i++)
@@ -224,10 +218,15 @@ public class SlotView : MonoBehaviour
             }
         }
 
-        // Build the animation sprite arrays
-        animationSpriteArrays = new List<Sprite>[13];
-        // Only USpin has an animation in this game
-        animationSpriteArrays[11] = animSpritesUSpin;
+        // Build the animation sprite arrays (any entry left empty simply won't animate)
+        animationSpriteArrays = new List<Sprite>[7];
+        animationSpriteArrays[0] = animSpritesBonus;
+        animationSpriteArrays[1] = animSprites2xWild;
+        animationSpriteArrays[2] = animSpritesRed7;
+        animationSpriteArrays[3] = animSpritesBlue7;
+        animationSpriteArrays[4] = animSpritesTripleBar;
+        animationSpriteArrays[5] = animSpritesDoubleBar;
+        animationSpriteArrays[6] = animSpritesSingleBar;
     }
 
     private void InitializeReels()
@@ -351,12 +350,12 @@ public class SlotView : MonoBehaviour
 
         for (int i = 0; i < visibleStartIndex && i < reel.images.Count; i++)
         {
-            reel.images[i].sprite = GetSymbolSprite(Random.Range(0, 10));
+            reel.images[i].sprite = GetSymbolSprite(Random.Range(2, 7));
         }
 
         for (int i = visibleStartIndex + rowCount; i < reel.images.Count; i++)
         {
-            reel.images[i].sprite = GetSymbolSprite(Random.Range(0, 10));
+            reel.images[i].sprite = GetSymbolSprite(Random.Range(2, 7));
         }
     }
 
@@ -536,7 +535,7 @@ public class SlotView : MonoBehaviour
         if (currentDisplayMatrix != null && columnIndex < currentDisplayMatrix.Count)
         {
             bool hasWild = false;
-            int wildId = gameManager?.gameConfig != null ? gameManager.gameConfig.wildSymbolId : 10;
+            int wildId = gameManager?.gameConfig != null ? gameManager.gameConfig.wildSymbolId : 1;
             foreach (int sym in currentDisplayMatrix[columnIndex])
             {
                 if (sym == wildId) hasWild = true;
@@ -624,7 +623,7 @@ public class SlotView : MonoBehaviour
         for (int row = 0; row < currentDisplayMatrix[col].Count; row++)
         {
             int symId = currentDisplayMatrix[col][row];
-            int wildId = gameManager?.gameConfig != null ? gameManager.gameConfig.wildSymbolId : 10;
+            int wildId = gameManager?.gameConfig != null ? gameManager.gameConfig.wildSymbolId : 1;
             bool isWild = (symId == wildId);
             
             if (isWild)

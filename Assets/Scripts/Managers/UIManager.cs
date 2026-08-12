@@ -140,19 +140,6 @@ public class UIManager : MonoBehaviour
     [Header("Guide Panel - Portrait")]
     [SerializeField] private Button guideOpenButtonPortrait;
 
-    [Header("Game Rules Dynamic Texts")]
-    [SerializeField] private TMP_Text totalLineCountText;
-    [SerializeField] private TMP_Text ruleSymbol0Text;
-    [SerializeField] private TMP_Text ruleSymbol1Text;
-    [SerializeField] private TMP_Text ruleSymbol2Text;
-    [SerializeField] private TMP_Text ruleSymbol3Text;
-    [SerializeField] private TMP_Text ruleSymbol4Text;
-    [SerializeField] private TMP_Text ruleSymbol5Text;
-    [SerializeField] private TMP_Text ruleSymbol6Text;
-    [SerializeField] private TMP_Text ruleSymbol7Text;
-    [SerializeField] private TMP_Text ruleSymbol8Text;
-    [SerializeField] private TMP_Text ruleSymbol9Text;
-
     [Header("Free Spin Count Display - Game Screen")]
     [SerializeField] private GameObject freeSpinCountContainer;
     [SerializeField] private TMP_Text remainingFreeSpinsText;
@@ -699,7 +686,6 @@ public class UIManager : MonoBehaviour
         if (betAmountTextPortrait) betAmountTextPortrait.text = "TOTAL PAY : " + FormatAmount(totalPay);
 
         UpdateBetButtonStates();
-        UpdateGameRulesDynamicTexts();
     }
 
     private void UpdateBetButtonStates()
@@ -1309,54 +1295,6 @@ public class UIManager : MonoBehaviour
     {
         SetButtonInteractable(betPlusButton, betPlusButtonPortrait, enabled);
         SetButtonInteractable(betMinusButton, betMinusButtonPortrait, enabled);
-    }
-
-    #endregion
-
-    #region Dynamic Game Rules Updates
-
-    private void UpdateGameRulesDynamicTexts()
-    {
-        if (gameManager.gameConfig == null) return;
-
-        if (totalLineCountText != null)
-        {
-            totalLineCountText.text = gameManager.gameConfig.paylineCount.ToString();
-        }
-
-        TMP_Text[] symbolTexts = {
-            ruleSymbol0Text, ruleSymbol1Text, ruleSymbol2Text, ruleSymbol3Text,
-            ruleSymbol4Text, ruleSymbol5Text, ruleSymbol6Text, ruleSymbol7Text,
-            ruleSymbol8Text, ruleSymbol9Text
-        };
-
-        if (gameManager.gameConfig.symbols != null)
-        {
-            for (int i = 0; i < symbolTexts.Length; i++)
-            {
-                if (symbolTexts[i] == null) continue;
-
-                var symbol = gameManager.gameConfig.symbols.Find(s => s.id == i);
-                if (symbol != null && symbol.multipliers != null && symbol.multipliers.Count > 0)
-                {
-                    double originalBetAmount = gameManager.currentBetAmount;
-                    string fullText = "";
-                    
-                    int currentMatch = 5;
-                    for (int m = 0; m < symbol.multipliers.Count; m++)
-                    {
-                        double win = symbol.multipliers[m];
-                        string line = $"{currentMatch}     {win.ToString("0.###")}";
-                        if (m == 0) fullText = line;
-                        else fullText += $"\n{line}";
-                        
-                        currentMatch--;
-                    }
-                    
-                    symbolTexts[i].text = fullText;
-                }
-            }
-        }
     }
 
     #endregion

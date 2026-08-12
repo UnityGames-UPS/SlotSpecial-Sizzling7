@@ -262,7 +262,7 @@ public class SocketIOManager : MonoBehaviour
             var initData = JsonConvert.DeserializeObject<InitData>(jsonData);
             var gameConfig = InitDataConverter.ConvertToGameConfig(initData);
             var playerData = InitDataConverter.ConvertToPlayerData(initData.player);
-            var initialMatrix = GenerateRandomMatrix(gameConfig.rowCount, gameConfig.reelCount);
+            var initialMatrix = GenerateRandomMatrix(gameConfig.totalResponseRowCount, gameConfig.reelCount);
 
             isInitialized = true;
 
@@ -631,15 +631,21 @@ public class SocketIOManager : MonoBehaviour
     }
 
     #endregion
+    // Pre-spin placeholder matrix (before any real result exists). Even rows (0, 2, 4 —
+    // SlotIcon (1)/(3)/(5), the top/middle/bottom of the 5-row display block) are always Blank
+    // so the idle start position shows empty rows there; odd rows (1, 3 — SlotIcon (2)/(4)) get
+    // a random real symbol.
     private List<List<int>> GenerateRandomMatrix(int rowCount, int reelCount)
     {
+        const int blankSymbolId = 7;
+
         var matrix = new List<List<int>>();
         for (int col = 0; col < reelCount; col++)
         {
             var column = new List<int>();
             for (int row = 0; row < rowCount; row++)
             {
-                column.Add(UnityEngine.Random.Range(0, 8));
+                column.Add(row % 2 == 0 ? blankSymbolId : UnityEngine.Random.Range(0, 7));
             }
             matrix.Add(column);
         }

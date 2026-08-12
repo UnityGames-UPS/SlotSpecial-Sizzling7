@@ -155,7 +155,7 @@ public class ServerSymbolInfo
     public int id;
     public string name;
     public List<double> multiplier; // Keep for fallback compatibility
-    public List<double> payout;
+    public double payout;           // Single flat payout per symbol (3-reel fixed-payline game — no per-match-count table)
     public string description;
     public int minMatch;
     public string group;
@@ -520,14 +520,8 @@ public static class InitDataConverter
                 minMatch = serverSymbol.minMatch
             };
 
-            // Store raw payout values for info page
-            if (serverSymbol.payout != null)
-            {
-                for (int i = serverSymbol.payout.Count - 1; i >= 0; i--)
-                {
-                    symbolInfo.multipliers.Add(serverSymbol.payout[i]);
-                }
-            }
+            // Store the flat payout value for the info page (3-reel fixed-payline game — one payout per symbol, not a per-match-count table)
+            symbolInfo.multipliers.Add(serverSymbol.payout);
             config.symbols.Add(symbolInfo);
 
             if (symbolInfo.isWild)
@@ -617,20 +611,19 @@ public static class InitDataConverter
         return result;
     }
 
-    // Server sends 5 rows per reel (row-major: reels[row][col]), rows 0 and 4 are decorative
-    // padding — only rows 1-3 (the active rows) populate the client matrix, re-indexed locally
-    // to 0..rowCount-1 to match SlotView's visible-row slots.
+    // Server sends totalResponseRowCount rows per reel (row-major: reels[row][col]). Rows 0 and
+    // totalResponseRowCount-1 are decorative rows shown above/below the payline area, but they
+    // are still real backend data — all rows are passed through unsliced, in server order.
+    // SlotView is responsible for placing each row in the correct on-screen image slot.
     private static List<List<int>> ConvertReelsToMatrix(List<List<string>> serverReels, GameConfig gameConfig)
     {
         int reelCount = gameConfig != null ? gameConfig.reelCount : 3;
-        int rowCount = gameConfig != null ? gameConfig.rowCount : 3;
         int totalResponseRowCount = gameConfig != null ? gameConfig.totalResponseRowCount : 5;
-        int activeRowStart = (totalResponseRowCount - rowCount) / 2; // e.g. (5-3)/2 = 1
 
         if (serverReels == null || serverReels.Count == 0)
         {
             UnityEngine.Debug.LogError("Invalid server reels: serverReels is null or empty");
-            return GenerateDefaultMatrix(reelCount, rowCount);
+            return GenerateDefaultMatrix(reelCount, totalResponseRowCount);
         }
 
         var matrix = new List<List<int>>();
@@ -638,10 +631,8 @@ public static class InitDataConverter
         for (int col = 0; col < reelCount; col++)
         {
             var column = new List<int>();
-            for (int localRow = 0; localRow < rowCount; localRow++)
+            for (int serverRow = 0; serverRow < totalResponseRowCount; serverRow++)
             {
-                int serverRow = activeRowStart + localRow;
-
                 if (serverRow >= serverReels.Count || col >= serverReels[serverRow].Count)
                 {
                     UnityEngine.Debug.LogError($"Invalid server data at row {serverRow}, col {col}");

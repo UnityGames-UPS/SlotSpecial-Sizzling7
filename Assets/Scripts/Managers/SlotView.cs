@@ -107,7 +107,23 @@ public class SlotView : MonoBehaviour
     private bool isSpinning;
 
     private int VisibleStartIndex => bufferRowsAbove + 2;
-    private int ReelCount => reelTransforms != null ? reelTransforms.Length : 3;
+    // Config-driven, not Inspector-array-length-driven: reelTransforms/reelImagesList may still
+    // have leftover unused slots from a previous reel count (e.g. CNY's 5 reels), so this must
+    // reflect the real backend's reel count, not the serialized array size.
+    private int ReelCount => (gameManager != null && gameManager.gameConfig != null)
+        ? gameManager.gameConfig.reelCount
+        : (reelTransforms != null ? reelTransforms.Length : 3);
+
+    // Active/paying row count (3).
+    private int RowCount => (gameManager != null && gameManager.gameConfig != null) ? gameManager.gameConfig.rowCount : 3;
+    // Full server row count, including the 2 decorative rows (5).
+    private int TotalResponseRowCount => (gameManager != null && gameManager.gameConfig != null) ? gameManager.gameConfig.totalResponseRowCount : 5;
+    // Offset of the first active row within the full server row block (e.g. (5-3)/2 = 1).
+    // Mirrors GameDataModels.ConvertWinningLines' own independent activeRowStart calculation.
+    private int ActiveRowStart => (TotalResponseRowCount - RowCount) / 2;
+    // List-index where all server rows (0..TotalResponseRowCount-1) get written into reel.images —
+    // one slot before VisibleStartIndex, so the whole server row block lands contiguously.
+    private int DisplayStartIndex => VisibleStartIndex - ActiveRowStart;
 
     #region Initialization
 
@@ -174,12 +190,13 @@ public class SlotView : MonoBehaviour
             return;
         }
 
-        if (currentDisplayMatrix == null || col >= currentDisplayMatrix.Count || row >= currentDisplayMatrix[col].Count)
+        int matrixRow = ActiveRowStart + row;
+        if (currentDisplayMatrix == null || col >= currentDisplayMatrix.Count || matrixRow < 0 || matrixRow >= currentDisplayMatrix[col].Count)
         {
             return;
         }
 
-        int symbolId = currentDisplayMatrix[col][row];
+        int symbolId = currentDisplayMatrix[col][matrixRow];
         if (symbolInfoCard != null)
         {
             symbolInfoCard.ShowCard(symbolId, col, row, symbolRect, gameManager);
@@ -237,13 +254,13 @@ public class SlotView : MonoBehaviour
     {
         middlePosition = 0f;
 
-        int rowCount = (gameManager != null && gameManager.gameConfig != null) ? gameManager.gameConfig.rowCount : 3;
+        int totalResponseRowCount = TotalResponseRowCount;
 
         currentDisplayMatrix = new List<List<int>>();
         for (int col = 0; col < ReelCount; col++)
         {
             var defaultCol = new List<int>();
-            for (int r = 0; r < rowCount; r++)
+            for (int r = 0; r < totalResponseRowCount; r++)
             {
                 defaultCol.Add(0);
             }
@@ -255,11 +272,11 @@ public class SlotView : MonoBehaviour
     {
         if (matrix == null || matrix.Count != ReelCount) return;
 
-        int rowCount = (gameManager != null && gameManager.gameConfig != null) ? gameManager.gameConfig.rowCount : 3;
+        int totalResponseRowCount = TotalResponseRowCount;
 
         for (int col = 0; col < ReelCount; col++)
         {
-            if (matrix[col].Count != rowCount) return;
+            if (matrix[col].Count != totalResponseRowCount) return;
         }
 
         currentDisplayMatrix = matrix;
@@ -282,11 +299,11 @@ public class SlotView : MonoBehaviour
             return;
         }
 
-        int rowCount = (gameManager != null && gameManager.gameConfig != null) ? gameManager.gameConfig.rowCount : 3;
+        int totalResponseRowCount = TotalResponseRowCount;
 
-        if (visibleSymbolIds == null || visibleSymbolIds.Count != rowCount)
+        if (visibleSymbolIds == null || visibleSymbolIds.Count != totalResponseRowCount)
         {
-            Debug.LogError($"SetReelSymbols: Invalid visibleSymbolIds count {visibleSymbolIds?.Count}, expected {rowCount}");
+            Debug.LogError($"SetReelSymbols: Invalid visibleSymbolIds count {visibleSymbolIds?.Count}, expected {totalResponseRowCount}");
             return;
         }
 
@@ -298,10 +315,10 @@ public class SlotView : MonoBehaviour
             return;
         }
 
-        int visibleStartIndex = VisibleStartIndex;
-        for (int row = 0; row < rowCount; row++)
+        int displayStartIndex = DisplayStartIndex;
+        for (int row = 0; row < totalResponseRowCount; row++)
         {
-            int imageIndex = visibleStartIndex + row;
+            int imageIndex = displayStartIndex + row;
             if (imageIndex < reel.images.Count)
             {
                 int symbolId = visibleSymbolIds[row];
@@ -339,25 +356,24 @@ public class SlotView : MonoBehaviour
         return symbolSprites[symbolId];
     }
 
-    // Randomizes every image slot outside the visible window (both the prepended spin-loop
-    // buffer and the decorative rows below) — used to seed filler content at spin start and to
-    // refresh it each time the continuous loop wraps, and shared with SetReelSymbols for the
-    // decorative rows around a landed result.
+    // Randomizes only the pure spin-loop scroll buffer (above and below the server-driven
+    // display block at [DisplayStartIndex, DisplayStartIndex+TotalResponseRowCount)) — the
+    // decorative rows within that block are real backend data, set by SetReelSymbols instead.
     private void RandomizeBufferSprites(int columnIndex)
     {
         if (columnIndex >= reelImagesList.Count) return;
         var reel = reelImagesList[columnIndex];
         if (reel.images == null) return;
 
-        int rowCount = (gameManager != null && gameManager.gameConfig != null) ? gameManager.gameConfig.rowCount : 3;
-        int visibleStartIndex = VisibleStartIndex;
+        int totalResponseRowCount = TotalResponseRowCount;
+        int displayStartIndex = DisplayStartIndex;
 
-        for (int i = 0; i < visibleStartIndex && i < reel.images.Count; i++)
+        for (int i = 0; i < displayStartIndex && i < reel.images.Count; i++)
         {
             reel.images[i].sprite = GetSymbolSprite(Random.Range(2, 8));
         }
 
-        for (int i = visibleStartIndex + rowCount; i < reel.images.Count; i++)
+        for (int i = displayStartIndex + totalResponseRowCount; i < reel.images.Count; i++)
         {
             reel.images[i].sprite = GetSymbolSprite(Random.Range(2, 8));
         }
@@ -536,14 +552,19 @@ public class SlotView : MonoBehaviour
         // ── Play reel-stop sound immediately when symbols lock in ──────────
         AudioManager.Instance?.PlayReelStop();
 
-        // Detect wild symbols in this column for hit sounds
+        // Detect wild symbols in this column for hit sounds — bounded to active rows only,
+        // since a wild sitting in a decorative row never represents a landed/paying position.
         if (currentDisplayMatrix != null && columnIndex < currentDisplayMatrix.Count)
         {
             bool hasWild = false;
             int wildId = gameManager?.gameConfig != null ? gameManager.gameConfig.wildSymbolId : 1;
-            foreach (int sym in currentDisplayMatrix[columnIndex])
+            var column = currentDisplayMatrix[columnIndex];
+            int activeRowStart = ActiveRowStart;
+            int activeRowEnd = Mathf.Min(activeRowStart + RowCount, column.Count);
+
+            for (int r = activeRowStart; r < activeRowEnd; r++)
             {
-                if (sym == wildId) hasWild = true;
+                if (column[r] == wildId) { hasWild = true; break; }
             }
             if (hasWild) AudioManager.Instance?.PlayReelStop();
         }
@@ -624,16 +645,20 @@ public class SlotView : MonoBehaviour
     private void PlayStopAnimationsForColumn(int col)
     {
         if (currentDisplayMatrix == null || col >= currentDisplayMatrix.Count) return;
-        
-        for (int row = 0; row < currentDisplayMatrix[col].Count; row++)
+
+        int activeRowStart = ActiveRowStart;
+        int rowCount = RowCount;
+        int wildId = gameManager?.gameConfig != null ? gameManager.gameConfig.wildSymbolId : 1;
+
+        // Bounded to active rows only — decorative rows never represent a landed/paying position.
+        for (int localRow = 0; localRow < rowCount; localRow++)
         {
-            int symId = currentDisplayMatrix[col][row];
-            int wildId = gameManager?.gameConfig != null ? gameManager.gameConfig.wildSymbolId : 1;
-            bool isWild = (symId == wildId);
-            
-            if (isWild)
+            int matrixRow = activeRowStart + localRow;
+            if (matrixRow >= currentDisplayMatrix[col].Count) continue;
+
+            if (currentDisplayMatrix[col][matrixRow] == wildId)
             {
-                AnimateSymbolSingleLoop(col, row, 1);
+                AnimateSymbolSingleLoop(col, localRow, 1);
             }
         }
     }
@@ -647,19 +672,30 @@ public class SlotView : MonoBehaviour
 
         int actualScatterId = gameManager?.gameConfig != null ? gameManager.gameConfig.scatterSymbolId : -1;
         if (actualScatterId < 0) return;
-        
+
+        int activeRowStart = ActiveRowStart;
+        int rowCount = RowCount;
+
+        // Bounded to active rows only — decorative rows never represent a landed/paying position.
         for (int col = 0; col < ReelCount; col++)
         {
-            for (int row = 0; row < currentDisplayMatrix[col].Count; row++)
+            if (col >= currentDisplayMatrix.Count) continue;
+            for (int localRow = 0; localRow < rowCount; localRow++)
             {
-                if (currentDisplayMatrix[col][row] == actualScatterId)
+                int matrixRow = activeRowStart + localRow;
+                if (matrixRow >= currentDisplayMatrix[col].Count) continue;
+
+                if (currentDisplayMatrix[col][matrixRow] == actualScatterId)
                 {
-                    AnimateSymbolSingleLoop(col, row, loopCount);
+                    AnimateSymbolSingleLoop(col, localRow, loopCount);
                 }
             }
         }
     }
 
+    // Dormant CNY-era code (uSpinData is always null, never invoked — see GameDataModels).
+    // Reads currentDisplayMatrix with a raw row index (no ActiveRowStart offset) — would need
+    // the same active-row-space fix as PlayStopAnimationsForColumn/AnimateAllScatters if revived.
     internal void AnimateUSpinWin(System.Action onComplete = null)
     {
         if (currentDisplayMatrix == null)
@@ -750,6 +786,9 @@ public class SlotView : MonoBehaviour
         }
     }
 
+    // Dormant CNY-era code (moneyBagData is always null, never invoked — see GameDataModels).
+    // Reads currentDisplayMatrix with a raw row index (no ActiveRowStart offset) — would need
+    // the same active-row-space fix as PlayStopAnimationsForColumn/AnimateAllScatters if revived.
     internal void AnimateMoneyBagWin()
     {
         if (currentDisplayMatrix == null) return;
@@ -789,7 +828,7 @@ public class SlotView : MonoBehaviour
         ImageAnimation imageAnim = animGO.GetComponent<ImageAnimation>();
         if (imageAnim == null) return;
 
-        int symbolId = currentDisplayMatrix[column][row];
+        int symbolId = currentDisplayMatrix[column][ActiveRowStart + row];
         if (symbolId < 0 || symbolId >= animationSpriteArrays.Length) return;
 
         List<Sprite> animSprites = animationSpriteArrays[symbolId];
@@ -980,8 +1019,9 @@ public class SlotView : MonoBehaviour
             ImageAnimation imageAnim = animGO.GetComponent<ImageAnimation>();
             if (imageAnim == null) continue;
 
-            if (col >= currentDisplayMatrix.Count || row >= currentDisplayMatrix[col].Count) continue;
-            int symbolId = currentDisplayMatrix[col][row];
+            int matrixRow = ActiveRowStart + row;
+            if (col >= currentDisplayMatrix.Count || matrixRow >= currentDisplayMatrix[col].Count) continue;
+            int symbolId = currentDisplayMatrix[col][matrixRow];
             if (symbolId < 0 || symbolId >= animationSpriteArrays.Length) continue;
 
             List<Sprite> animSprites = animationSpriteArrays[symbolId];

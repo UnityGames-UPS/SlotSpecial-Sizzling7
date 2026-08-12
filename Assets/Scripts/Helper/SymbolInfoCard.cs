@@ -186,7 +186,8 @@ else if (isWild)
             if (symbolInfo != null && symbolInfo.multipliers != null && symbolInfo.multipliers.Count > 0)
             {
                 List<string> lines = new List<string>();
-                int currentMatch = 5;
+                int reelCount = (gameManager != null && gameManager.gameConfig != null) ? gameManager.gameConfig.reelCount : 5;
+                int currentMatch = reelCount;
 
                 for (int m = 0; m < symbolInfo.multipliers.Count; m++)
                 {

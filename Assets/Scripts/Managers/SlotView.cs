@@ -82,9 +82,6 @@ public class SlotView : MonoBehaviour
     [Header("Phase 1 Total Win Presentation")]
     [SerializeField] private TMPro.TMP_Text phase1TotalWinText;
 
-    [Header("Win Box Overlays — Col 0..2  (each has 3 rows: 0=top .. 2=bottom)")]
-    [SerializeField] private ColumnOverlays[] winBoxColumns = new ColumnOverlays[3];
-
     [Header("Win Animation Objects — Col 0..2  (each has 3 rows, contains ImageAnimation component)")]
     [Tooltip("GameObject references for win animations. Each should have an ImageAnimation component attached.")]
     [SerializeField] private ColumnOverlays[] winAnimationColumns = new ColumnOverlays[3];
@@ -137,7 +134,6 @@ public class SlotView : MonoBehaviour
 
     private void DisableAllOverlays()
     {
-        DisableColumns(winBoxColumns);
         DisableColumns(winAnimationColumns);
         HidePhase1TotalWinText();
         if (symbolInfoCard) symbolInfoCard.HideCard();
@@ -370,12 +366,12 @@ public class SlotView : MonoBehaviour
 
         for (int i = 0; i < displayStartIndex && i < reel.images.Count; i++)
         {
-            reel.images[i].sprite = GetSymbolSprite(Random.Range(2, 8));
+            reel.images[i].sprite = GetSymbolSprite(Random.Range(0, 7));
         }
 
         for (int i = displayStartIndex + totalResponseRowCount; i < reel.images.Count; i++)
         {
-            reel.images[i].sprite = GetSymbolSprite(Random.Range(2, 8));
+            reel.images[i].sprite = GetSymbolSprite(Random.Range(0, 7));
         }
     }
 
@@ -440,9 +436,9 @@ public class SlotView : MonoBehaviour
     }
 
     // One continuous loop tween per column, replacing the old "shift one row then snap"
-    // illusion. The strip's sprite content is static between wraps; RandomizeBufferSprites
-    // refreshes the off-screen buffer each time the loop restarts so a long spin never visibly
-    // repeats the same static sequence.
+    // illusion. The strip's sprite content is set once at StartSpin() and stays static for the
+    // rest of the spin — reshuffling it on every loop wrap was visible as symbols popping/
+    // changing mid-scroll, so the buffer is deliberately left untouched here.
     private void StartContinuousLoop(int columnIndex)
     {
         if (columnIndex >= reelTransforms.Length) return;
@@ -457,13 +453,7 @@ public class SlotView : MonoBehaviour
 
         Tween loopTween = slotTransform.DOLocalMoveY(middlePosition - loopDistance, loopDuration)
             .SetEase(spinLoopEase)
-            .SetLoops(-1, LoopType.Restart)
-            .OnStepComplete(() => {
-                if (isSpinning)
-                {
-                    RandomizeBufferSprites(columnIndex);
-                }
-            });
+            .SetLoops(-1, LoopType.Restart);
 
         loopTween.Play();
 
@@ -696,6 +686,9 @@ public class SlotView : MonoBehaviour
     // Dormant CNY-era code (uSpinData is always null, never invoked — see GameDataModels).
     // Reads currentDisplayMatrix with a raw row index (no ActiveRowStart offset) — would need
     // the same active-row-space fix as PlayStopAnimationsForColumn/AnimateAllScatters if revived.
+    // Also still toggles animGO.SetActive(...) and fades symbolImage as if they were separate
+    // objects — now that ImageAnimation lives directly on the SlotIcon root (sharing symbolImage),
+    // this would incorrectly hide the whole icon if ever revived.
     internal void AnimateUSpinWin(System.Action onComplete = null)
     {
         if (currentDisplayMatrix == null)
@@ -718,8 +711,6 @@ public class SlotView : MonoBehaviour
             {
                 if (currentDisplayMatrix[col][row] == 11) // USpin Symbol ID
                 {
-                    EnableWinBox(col, row);
-                    
                     var animGO = WinBox(winAnimationColumns, col, row);
                     if (animGO != null)
                     {
@@ -787,26 +778,14 @@ public class SlotView : MonoBehaviour
     }
 
     // Dormant CNY-era code (moneyBagData is always null, never invoked — see GameDataModels).
-    // Reads currentDisplayMatrix with a raw row index (no ActiveRowStart offset) — would need
-    // the same active-row-space fix as PlayStopAnimationsForColumn/AnimateAllScatters if revived.
+    // Body was stripped of its WinBox-driven symbol scan during the WinBox removal; only the
+    // tween-cleanup/audio-cue shell remains.
     internal void AnimateMoneyBagWin()
     {
         if (currentDisplayMatrix == null) return;
 
         KillWinTweens();
         AudioManager.Instance?.PlayWinLinePhase1Start();
-
-        for (int col = 0; col < ReelCount; col++)
-        {
-            if (col >= currentDisplayMatrix.Count) continue;
-            for (int row = 0; row < currentDisplayMatrix[col].Count; row++)
-            {
-                if (currentDisplayMatrix[col][row] == 12) // MoneyBag Symbol ID
-                {
-                    EnableWinBox(col, row);
-                }
-            }
-        }
     }
 
     private void AnimateSymbolSingleLoop(int column, int row, int loopCount = 1)
@@ -836,45 +815,22 @@ public class SlotView : MonoBehaviour
 
         imageAnim.textureArray = animSprites;
 
-        Color originalColor = new Color(symbolImage.color.r, symbolImage.color.g, symbolImage.color.b, 1f);
-
         Sequence seq = DOTween.Sequence();
-        
+
         seq.AppendCallback(() => {
-            animGO.SetActive(true);
-            Image animRenderer = imageAnim.rendererDelegate;
-            if (animRenderer != null)
-            {
-                animRenderer.DOKill();
-                Color c = animRenderer.color;
-                animRenderer.color = new Color(c.r, c.g, c.b, 1f);
-            }
+            // ImageAnimation now lives directly on the SlotIcon root, sharing symbolImage —
+            // no separate overlay to activate/fade; just ensure full opacity before playing.
             symbolImage.DOKill();
-            symbolImage.DOFade(0f, 0.2f);
-            
+            Color c = symbolImage.color;
+            symbolImage.color = new Color(c.r, c.g, c.b, 1f);
+
             imageAnim.StartAnimation();
         });
 
         seq.AppendInterval(winSymbolLoopDuration * loopCount);
 
         seq.AppendCallback(() => {
-            Image animRenderer = imageAnim != null ? imageAnim.rendererDelegate : null;
-
-            if (animRenderer != null)
-            {
-                animRenderer.DOKill();
-                Color c = animRenderer.color;
-                animRenderer.color = new Color(c.r, c.g, c.b, 1f);
-            }
-
-            if (imageAnim != null) imageAnim.StopAnimation();
-            if (animGO != null) animGO.SetActive(false);
-
-            if (symbolImage != null)
-            {
-                symbolImage.DOKill();
-                symbolImage.DOFade(originalColor.a, 0.2f);
-            }
+            if (imageAnim != null) imageAnim.StopAnimation(); // reverts to textureArray[0], which equals the resting sprite
         });
 
         winTweens.Add(seq);
@@ -1001,8 +957,6 @@ public class SlotView : MonoBehaviour
 
             if (col < 0 || col >= ReelCount || row < 0 || row >= rowLimit) continue;
 
-            EnableWinBox(col, row);
-
             if (col >= reelImagesList.Count) continue;
             var reel = reelImagesList[col];
             if (reel.images == null) continue;
@@ -1030,17 +984,11 @@ public class SlotView : MonoBehaviour
             imageAnim.textureArray = animSprites;
             imageAnim.doLoopAnimation = true;
 
-            animGO.SetActive(true);
-            Image animRenderer = imageAnim.rendererDelegate != null ? imageAnim.rendererDelegate : animGO.GetComponent<Image>();
-            if (animRenderer != null)
-            {
-                animRenderer.DOKill();
-                Color c = animRenderer.color;
-                animRenderer.color = new Color(c.r, c.g, c.b, 1f);
-            }
-
+            // ImageAnimation now lives directly on the SlotIcon root, sharing symbolImage —
+            // no separate overlay to activate/fade; just ensure full opacity before playing.
             symbolImage.DOKill();
-            symbolImage.DOFade(0f, 0.2f);
+            Color c = symbolImage.color;
+            symbolImage.color = new Color(c.r, c.g, c.b, 1f);
 
             activeAnims.Add(imageAnim);
 
@@ -1049,14 +997,7 @@ public class SlotView : MonoBehaviour
                 if (currentLoop >= loopCountTarget)
                 {
                     imageAnim.onLoopComplete = null;
-                    imageAnim.StopAnimation();
-                    if (animGO != null) animGO.SetActive(false);
-
-                    if (symbolImage != null)
-                    {
-                        symbolImage.DOKill();
-                        symbolImage.DOFade(1f, 0.2f);
-                    }
+                    imageAnim.StopAnimation(); // reverts to textureArray[0], which equals the resting sprite
 
                     completedCount++;
                     if (completedCount >= activeAnims.Count)
@@ -1165,25 +1106,10 @@ public class SlotView : MonoBehaviour
         seq.Append(textTransform.DOScale(1.0f, durationDown).SetEase(Ease.InQuad));
         winTweens.Add(seq);
     }
-    private void EnableWinBox(int col, int row)
-    {
-        var go = WinBox(winBoxColumns, col, row);
-        if (go)
-        {
-            go.SetActive(true);
-        }
-        else
-        {
-            Debug.LogError($"[EnableWinBox] WinBox GameObject is NULL at col: {col}, row: {row}");
-        }
-    }
-
-    private void DisableWinBox(int col, int row)
-    {
-        var go = WinBox(winBoxColumns, col, row);
-        if (go) go.SetActive(false);
-    }
-
+    // Confirmed dead code — no callers anywhere in the project. Still toggles animGO.SetActive(...)
+    // as if it were a separate overlay object; would need the same treatment as
+    // AnimateWinPositions/AnimateSymbolSingleLoop if ever wired up, now that ImageAnimation lives
+    // directly on the SlotIcon root (sharing symbolImage).
     private void ResetSymbolScale(int col, int row)
     {
         if (col >= reelImagesList.Count) return;
@@ -1215,6 +1141,10 @@ public class SlotView : MonoBehaviour
     }
 
 
+    // Confirmed dead code — no callers anywhere in the project. Still toggles animGO.SetActive(...)
+    // and fades symbolImage as if they were separate objects; would need the same treatment as
+    // AnimateWinPositions/AnimateSymbolSingleLoop if ever wired up, now that ImageAnimation lives
+    // directly on the SlotIcon root (sharing symbolImage).
     private void AnimateWinSymbol(int column, int row)
     {
 
@@ -1356,7 +1286,9 @@ public class SlotView : MonoBehaviour
             winAnimationCoroutine = null;
         }
 
-        // Stop all win animations and disable animation GameObjects
+        // Stop all in-flight win animations. ImageAnimation lives directly on the SlotIcon root
+        // now (sharing symbolImage) — no separate overlay to deactivate; alpha restoration for
+        // every icon (including these) happens in the reelImagesList loop below.
         if (winAnimationColumns != null)
         {
             foreach (var col in winAnimationColumns)
@@ -1371,17 +1303,7 @@ public class SlotView : MonoBehaviour
                             if (imageAnim != null)
                             {
                                 imageAnim.onLoopComplete = null;
-                                if (imageAnim.rendererDelegate != null)
-                                {
-                                    imageAnim.rendererDelegate.DOKill();
-                                    Color ac = imageAnim.rendererDelegate.color;
-                                    imageAnim.rendererDelegate.color = new Color(ac.r, ac.g, ac.b, 1f);
-                                }
                                 imageAnim.StopAnimation();
-                            }
-                            if (animGO.activeSelf)
-                            {
-                                animGO.SetActive(false);
                             }
                         }
                     }
@@ -1389,7 +1311,6 @@ public class SlotView : MonoBehaviour
             }
         }
 
-        DisableColumns(winBoxColumns);
         HideAllWinLineTexts();
         HidePhase1TotalWinText();
 

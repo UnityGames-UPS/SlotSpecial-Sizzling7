@@ -11,7 +11,7 @@ Texture2D:
     serializedVersion: 2
     Hash: 00000000000000000000000000000000
   m_IsAlphaChannelOptional: 0
-  serializedVersion: 3
+  serializedVersion: 4
   m_Width: 1024
   m_Height: 1024
   m_CompleteImageSize: 1048576
@@ -102,56 +102,11 @@ MonoBehaviour:
     fontStyleModifier: 0
     renderMode: 4165
     includeFontFeatures: 0
-  m_SourceFontFile: {fileID: 12800000, guid: cca70b5b3a68f4f4ea5c7dee4d8784c7, type: 3}
+  m_SourceFontFile: {fileID: 0}
   m_SourceFontFilePath: 
   m_AtlasPopulationMode: 1
   InternalDynamicOS: 0
   m_GlyphTable:
-  - m_Index: 67
-    m_Metrics:
-      m_Width: 39.8125
-      m_Height: 10.328125
-      m_HorizontalBearingX: 0
-      m_HorizontalBearingY: 0
-      m_HorizontalAdvance: 39.90625
-    m_GlyphRect:
-      m_X: 10
-      m_Y: 10
-      m_Width: 40
-      m_Height: 11
-    m_Scale: 1
-    m_AtlasIndex: 0
-    m_ClassDefinitionType: 0
-  - m_Index: 25
-    m_Metrics:
-      m_Width: 43.984375
-      m_Height: 64.859375
-      m_HorizontalBearingX: 4.09375
-      m_HorizontalBearingY: 63.984375
-      m_HorizontalAdvance: 51.90625
-    m_GlyphRect:
-      m_X: 69
-      m_Y: 10
-      m_Width: 45
-      m_Height: 65
-    m_Scale: 1
-    m_AtlasIndex: 0
-    m_ClassDefinitionType: 0
-  - m_Index: 399
-    m_Metrics:
-      m_Width: 57.40625
-      m_Height: 14.015625
-      m_HorizontalBearingX: 5.75
-      m_HorizontalBearingY: 13.53125
-      m_HorizontalAdvance: 68.203125
-    m_GlyphRect:
-      m_X: 133
-      m_Y: 10
-      m_Width: 59
-      m_Height: 15
-    m_Scale: 1
-    m_AtlasIndex: 0
-    m_ClassDefinitionType: 0
   - m_Index: 21
     m_Metrics:
       m_Width: 28.59375
@@ -212,19 +167,52 @@ MonoBehaviour:
     m_Scale: 1
     m_AtlasIndex: 0
     m_ClassDefinitionType: 0
+  - m_Index: 25
+    m_Metrics:
+      m_Width: 43.984375
+      m_Height: 64.859375
+      m_HorizontalBearingX: 4.09375
+      m_HorizontalBearingY: 63.984375
+      m_HorizontalAdvance: 51.90625
+    m_GlyphRect:
+      m_X: 69
+      m_Y: 10
+      m_Width: 45
+      m_Height: 65
+    m_Scale: 1
+    m_AtlasIndex: 0
+    m_ClassDefinitionType: 0
+  - m_Index: 67
+    m_Metrics:
+      m_Width: 39.8125
+      m_Height: 10.328125
+      m_HorizontalBearingX: 0
+      m_HorizontalBearingY: 0
+      m_HorizontalAdvance: 39.90625
+    m_GlyphRect:
+      m_X: 10
+      m_Y: 10
+      m_Width: 40
+      m_Height: 11
+    m_Scale: 1
+    m_AtlasIndex: 0
+    m_ClassDefinitionType: 0
+  - m_Index: 399
+    m_Metrics:
+      m_Width: 57.40625
+      m_Height: 14.015625
+      m_HorizontalBearingX: 5.75
+      m_HorizontalBearingY: 13.53125
+      m_HorizontalAdvance: 68.203125
+    m_GlyphRect:
+      m_X: 133
+      m_Y: 10
+      m_Width: 59
+      m_Height: 15
+    m_Scale: 1
+    m_AtlasIndex: 0
+    m_ClassDefinitionType: 0
   m_CharacterTable:
-  - m_ElementType: 1
-    m_Unicode: 95
-    m_GlyphIndex: 67
-    m_Scale: 1
-  - m_ElementType: 1
-    m_Unicode: 53
-    m_GlyphIndex: 25
-    m_Scale: 1
-  - m_ElementType: 1
-    m_Unicode: 8230
-    m_GlyphIndex: 399
-    m_Scale: 1
   - m_ElementType: 1
     m_Unicode: 49
     m_GlyphIndex: 21
@@ -240,6 +228,18 @@ MonoBehaviour:
   - m_ElementType: 1
     m_Unicode: 52
     m_GlyphIndex: 24
+    m_Scale: 1
+  - m_ElementType: 1
+    m_Unicode: 53
+    m_GlyphIndex: 25
+    m_Scale: 1
+  - m_ElementType: 1
+    m_Unicode: 95
+    m_GlyphIndex: 67
+    m_Scale: 1
+  - m_ElementType: 1
+    m_Unicode: 8230
+    m_GlyphIndex: 399
     m_Scale: 1
   m_AtlasTextures:
   - {fileID: -6720143090521734286}
@@ -596,7 +596,7 @@ Material:
     - _OutlineSoftness: 0
     - _OutlineUVSpeedX: 0
     - _OutlineUVSpeedY: 0
-    - _OutlineWidth: 0
+    - _OutlineWidth: 0.461
     - _PerspectiveFilter: 0.875
     - _Reflectivity: 10
     - _ScaleRatioA: 0.9
@@ -628,7 +628,7 @@ Material:
     - _FaceColor: {r: 1, g: 1, b: 1, a: 1}
     - _GlowColor: {r: 0, g: 1, b: 0, a: 0.5}
     - _MaskCoord: {r: 0, g: 0, b: 32767, a: 32767}
-    - _OutlineColor: {r: 0, g: 0, b: 0, a: 1}
+    - _OutlineColor: {r: 0.509434, g: 0.09368921, b: 0.08891057, a: 1}
     - _ReflectFaceColor: {r: 0, g: 0, b: 0, a: 1}
     - _ReflectOutlineColor: {r: 0, g: 0, b: 0, a: 1}
     - _SpecularColor: {r: 1, g: 1, b: 1, a: 1}

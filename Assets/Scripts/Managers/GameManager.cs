@@ -422,6 +422,13 @@ public class GameManager : MonoBehaviour
     {
         lastResult = result;
 
+        // Hand the result to SlotView as soon as it's known, so it can write the display-block
+        // sprites early (while still safely off-screen mid-spin) instead of at stop-time.
+        if (slotView != null && result.resultMatrix != null)
+        {
+            slotView.PreloadResultSprites(result.resultMatrix);
+        }
+
         // CRITICAL FIX: Update free spin counter IMMEDIATELY when server response arrives
         // This ensures the display shows the exact server-authoritative played count without lag
         if (isInFreeSpins && result.serverSpinsRemaining >= 0)

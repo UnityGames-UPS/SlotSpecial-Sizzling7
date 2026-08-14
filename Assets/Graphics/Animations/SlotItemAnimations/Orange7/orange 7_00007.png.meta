@@ -129,10 +129,10 @@ TextureImporter:
       name: orange 7_00007_0
       rect:
         serializedVersion: 2
-        x: 57
-        y: 65
-        width: 221
-        height: 210
+        x: 0
+        y: 6
+        width: 337
+        height: 331
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}

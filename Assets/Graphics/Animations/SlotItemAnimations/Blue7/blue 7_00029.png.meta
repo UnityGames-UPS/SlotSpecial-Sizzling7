@@ -129,10 +129,10 @@ TextureImporter:
       name: blue 7_00029_0
       rect:
         serializedVersion: 2
-        x: 80
-        y: 68
-        width: 182
-        height: 199
+        x: 32
+        y: 14
+        width: 279
+        height: 305
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}

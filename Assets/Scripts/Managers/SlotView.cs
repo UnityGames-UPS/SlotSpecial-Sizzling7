@@ -1038,7 +1038,7 @@ public class SlotView : MonoBehaviour
     {
         if (phase1TotalWinText != null)
         {
-            phase1TotalWinText.text = totalWinAmount.ToString("0.###");
+            phase1TotalWinText.text = SpriteTextFormatter.ToSpriteDigits(totalWinAmount.ToString("0.###"));
             AnimateTextScaleAppear(phase1TotalWinText.transform);
         }
     }

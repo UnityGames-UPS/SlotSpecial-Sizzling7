@@ -44,17 +44,10 @@ public class UIManager : MonoBehaviour
     [Header("Universal Win Popup")]
     [SerializeField] private GameObject universalWinPopup;
     [SerializeField] private RectTransform universalWinPopupRect;
-    [SerializeField] private GameObject uwpCongratulationsTitle;
-    [SerializeField] private GameObject uwpYouWonSubtitle;
-    [SerializeField] private GameObject uwpBigWinTitle;
-    [SerializeField] private TMP_Text uwpWinAmountText;
-    [SerializeField] private TMP_Text uwpFreeSpinCountText;
-    [SerializeField] private GameObject uwpFreeSpinObject;
+    [SerializeField] private TMP_Text bigWinAmount;
     [SerializeField] private Button uwpTakeButton;
     [Header("Universal Win Popup - Portrait")]
     [SerializeField] private Button uwpTakeButtonPortrait;
-    [Header("Universal Win Popup - Star Particle Burst")]
-    [SerializeField] private StarFountain starFountain;
 
     [Header("Spin Button")]
     [SerializeField] private Button spinButton;
@@ -197,6 +190,9 @@ public class UIManager : MonoBehaviour
     private System.Action universalWinPopupCallback;
     private Coroutine uwpAutoCloseCoroutine;
     private Tween uwpWinTween;
+    // Which popup is currently open — BigWin uses its own open/close animation, so the close
+    // path (which has no type parameter of its own) needs to know what was shown.
+    private WinPopupType currentPopupType;
     [SerializeField] private float uwpAutoCloseDelay = 5f;
 
     private void Awake()
@@ -252,7 +248,6 @@ public class UIManager : MonoBehaviour
         if (gameRulesPanel) gameRulesPanel.SetActive(false);
         if (guidePanel) guidePanel.SetActive(false);
         if (uwpWinTween != null) { uwpWinTween.Kill(); uwpWinTween = null; }
-        if (starFountain != null) starFountain.StopStarBurst();
         if (universalWinPopup) universalWinPopup.SetActive(false);
 
         if (freeSpinCountContainer) freeSpinCountContainer.SetActive(false);
@@ -1335,6 +1330,7 @@ public class UIManager : MonoBehaviour
         AudioManager.Instance?.PlayWinObjectBg();
         isSpecialWinActive = true;
         universalWinPopupCallback = onTakePressed;
+        currentPopupType = type;
 
         if (uwpWinTween != null)
         {
@@ -1342,82 +1338,28 @@ public class UIManager : MonoBehaviour
             uwpWinTween = null;
         }
 
-        if (uwpCongratulationsTitle) uwpCongratulationsTitle.SetActive(false);
-        if (uwpYouWonSubtitle) uwpYouWonSubtitle.SetActive(false);
-        if (uwpBigWinTitle) uwpBigWinTitle.SetActive(false);
-        if (uwpWinAmountText) uwpWinAmountText.gameObject.SetActive(false);
-        if (uwpFreeSpinCountText) uwpFreeSpinCountText.gameObject.SetActive(false);
-        if (uwpFreeSpinObject) uwpFreeSpinObject.SetActive(false);
+        if (bigWinAmount) bigWinAmount.gameObject.SetActive(false);
 
         switch (type)
         {
             case WinPopupType.FreeSpinTrigger:
-                if (uwpCongratulationsTitle) uwpCongratulationsTitle.SetActive(true);
-                if (uwpYouWonSubtitle) uwpYouWonSubtitle.SetActive(true);
-                if (uwpFreeSpinCountText)
-                {
-                    uwpFreeSpinCountText.gameObject.SetActive(true);
-                    uwpFreeSpinCountText.text = freeSpinCount.ToString();
-                }
-                if (uwpFreeSpinObject) uwpFreeSpinObject.SetActive(true);
-                break;
-
-            case WinPopupType.RegularWin:
-                if (uwpCongratulationsTitle) uwpCongratulationsTitle.SetActive(true);
-                if (uwpYouWonSubtitle) uwpYouWonSubtitle.SetActive(true);
-                if (uwpWinAmountText)
-                {
-                    uwpWinAmountText.gameObject.SetActive(true);
-                    uwpWinAmountText.text = FormatAmount(winAmount);
-                }
                 break;
 
             case WinPopupType.BigWin:
-                if (uwpBigWinTitle) uwpBigWinTitle.SetActive(true);
-                if (uwpWinAmountText)
+                if (bigWinAmount)
                 {
-                    uwpWinAmountText.gameObject.SetActive(true);
-                    uwpWinAmountText.text = FormatAmount(winAmount);
-                    RectTransform bigWinAmountRect = uwpWinAmountText.GetComponent<RectTransform>();
-                    if (bigWinAmountRect != null)
-                    {
-                        Vector2 pos = bigWinAmountRect.anchoredPosition;
-                        pos.y = 0f;
-                        bigWinAmountRect.anchoredPosition = pos;
-                    }
-                }
-                break;
-
-            case WinPopupType.MoneyBagCollect:
-                if (uwpCongratulationsTitle) uwpCongratulationsTitle.SetActive(true);
-                if (uwpYouWonSubtitle) uwpYouWonSubtitle.SetActive(true);
-                if (uwpWinAmountText)
-                {
-                    uwpWinAmountText.gameObject.SetActive(true);
-                    uwpWinAmountText.text = FormatAmount(winAmount);
+                    bigWinAmount.gameObject.SetActive(true);
+                    bigWinAmount.text = SpriteTextFormatter.ToSpriteDigits(FormatAmount(winAmount));
                 }
                 break;
 
             case WinPopupType.FreeSpinComplete:
-                if (uwpCongratulationsTitle) uwpCongratulationsTitle.SetActive(true);
-                if (uwpYouWonSubtitle) uwpYouWonSubtitle.SetActive(true);
-                if (uwpWinAmountText)
+                if (bigWinAmount)
                 {
-                    uwpWinAmountText.gameObject.SetActive(true);
-                    uwpWinAmountText.text = FormatAmount(winAmount);
+                    bigWinAmount.gameObject.SetActive(true);
+                    bigWinAmount.text = SpriteTextFormatter.ToSpriteDigits(FormatAmount(winAmount));
                 }
                 break;
-        }
-
-        if (type != WinPopupType.BigWin && uwpWinAmountText)
-        {
-            RectTransform winAmountRect = uwpWinAmountText.GetComponent<RectTransform>();
-            if (winAmountRect != null)
-            {
-                Vector2 pos = winAmountRect.anchoredPosition;
-                pos.y = -90f;
-                winAmountRect.anchoredPosition = pos;
-            }
         }
 
         SetSpinStopButtonStates(isSpinningState: false, isInteractable: false);
@@ -1431,32 +1373,41 @@ public class UIManager : MonoBehaviour
         {
             universalWinPopupRect.localScale = Vector3.zero;
             Sequence openSeq = DOTween.Sequence();
-            openSeq.Append(universalWinPopupRect.DOScale(1.2f, 0.5f).SetEase(Ease.OutCubic));
-            openSeq.Append(universalWinPopupRect.DOScale(1f, 0.3f).SetEase(Ease.InOutSine));
+
+            if (type == WinPopupType.BigWin)
+            {
+                // Fast snap in, then a slow constant swell that runs until just before the
+                // auto-close (0.5s pop + 4s swell + 0.5s hold = uwpAutoCloseDelay). No overshoot.
+                openSeq.Append(universalWinPopupRect.DOScale(1.1f, 0.5f).SetEase(Ease.OutQuad));
+                openSeq.Append(universalWinPopupRect.DOScale(1.5f, 4f).SetEase(Ease.Linear));
+            }
+            else
+            {
+                openSeq.Append(universalWinPopupRect.DOScale(1.2f, 0.5f).SetEase(Ease.OutCubic));
+                openSeq.Append(universalWinPopupRect.DOScale(1f, 0.3f).SetEase(Ease.InOutSine));
+            }
         }
 
-        if (starFountain != null) starFountain.PlayStarBurst();
-
-        if (uwpWinAmountText != null && uwpWinAmountText.gameObject.activeSelf && winAmount > 0)
+        if (bigWinAmount != null && bigWinAmount.gameObject.activeSelf && winAmount > 0)
         {
             int decimals = GetDecimalPlaces(winAmount);
             string formatStr = decimals > 0 ? "0." + new string('0', decimals) : "0";
 
-            uwpWinAmountText.text = (0.0).ToString(formatStr);
+            bigWinAmount.text = SpriteTextFormatter.ToSpriteDigits((0.0).ToString(formatStr));
 
-            float countUpDuration = (type == WinPopupType.BigWin) ? 1.5f : 1.0f;
+            float countUpDuration = (type == WinPopupType.BigWin) ? 3.8f : 1.0f;
 
             uwpWinTween = DOVirtual.Float(0f, (float)winAmount, countUpDuration, (val) =>
             {
-                if (uwpWinAmountText != null)
+                if (bigWinAmount != null)
                 {
-                    uwpWinAmountText.text = val.ToString(formatStr);
+                    bigWinAmount.text = SpriteTextFormatter.ToSpriteDigits(val.ToString(formatStr));
                 }
             }).OnComplete(() =>
             {
-                if (uwpWinAmountText != null)
+                if (bigWinAmount != null)
                 {
-                    uwpWinAmountText.text = FormatAmount(winAmount);
+                    bigWinAmount.text = SpriteTextFormatter.ToSpriteDigits(FormatAmount(winAmount));
                 }
                 uwpWinTween = null;
             });
@@ -1501,8 +1452,6 @@ public class UIManager : MonoBehaviour
             uwpWinTween = null;
         }
 
-        if (starFountain != null) starFountain.StopStarBurst();
-
         if (uwpAutoCloseCoroutine != null)
         {
             StopCoroutine(uwpAutoCloseCoroutine);
@@ -1516,9 +1465,23 @@ public class UIManager : MonoBehaviour
 
         if (universalWinPopupRect)
         {
+            // The BigWin open sequence runs for 4.5s, so a close triggered before it finishes
+            // would otherwise leave two scale tweens fighting over the same rect.
+            universalWinPopupRect.DOKill();
+
             Sequence closeSeq = DOTween.Sequence();
-            closeSeq.Append(universalWinPopupRect.DOScale(1.1f, 0.1f));
-            closeSeq.Append(universalWinPopupRect.DOScale(0f, 0.2f).SetEase(Ease.InBack));
+
+            if (currentPopupType == WinPopupType.BigWin)
+            {
+                // Straight collapse from wherever the swell left it — no anticipation bump.
+                closeSeq.Append(universalWinPopupRect.DOScale(0f, 0.5f).SetEase(Ease.InQuad));
+            }
+            else
+            {
+                closeSeq.Append(universalWinPopupRect.DOScale(1.1f, 0.1f));
+                closeSeq.Append(universalWinPopupRect.DOScale(0f, 0.2f).SetEase(Ease.InBack));
+            }
+
             closeSeq.OnComplete(() =>
             {
                 universalWinPopupRect.localScale = Vector3.one;

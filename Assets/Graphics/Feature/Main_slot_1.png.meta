@@ -1,16 +1,10 @@
 fileFormatVersion: 2
-guid: 1a7486f6ce2321640bd4f58d7ee4e9b9
+guid: 8c964b0bc2341a74f9d448e5e498e6cb
 TextureImporter:
   internalIDToNameTable:
   - first:
-      213: -948033515455220674
-    second: FREE_GAME_TEXT_0
-  - first:
-      213: -5543734297252225499
-    second: FREE_GAME_TEXT_1
-  - first:
-      213: 3611446845215716240
-    second: FREE_GAME_TEXT_2
+      213: -7219618496982878205
+    second: Main_slot_1_0
   externalObjects: {}
   serializedVersion: 13
   mipmaps:
@@ -132,23 +126,23 @@ TextureImporter:
     serializedVersion: 2
     sprites:
     - serializedVersion: 2
-      name: FREE_GAME_TEXT_2
+      name: Main_slot_1_0
       rect:
         serializedVersion: 2
-        x: 12
-        y: 61
-        width: 2128
-        height: 562
+        x: 19
+        y: 15
+        width: 1888
+        height: 965
       alignment: 0
-      pivot: {x: 0.5, y: 0.5}
+      pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: 093b94e75cf6e1230800000000000000
-      internalID: 3611446845215716240
+      spriteID: 308fe796a33cecb90800000000000000
+      internalID: -7219618496982878205
       vertices: []
       indices: 
       edges: []
@@ -157,7 +151,7 @@ TextureImporter:
     customData: 
     physicsShape: []
     bones: []
-    spriteID: 71f5f932424922b4293212d3018a9dee
+    spriteID: 
     internalID: 0
     vertices: []
     indices: 
@@ -167,9 +161,7 @@ TextureImporter:
     spriteCustomMetadata:
       entries: []
     nameFileIdTable:
-      FREE_GAME_TEXT_0: -948033515455220674
-      FREE_GAME_TEXT_1: -5543734297252225499
-      FREE_GAME_TEXT_2: 3611446845215716240
+      Main_slot_1_0: -7219618496982878205
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 

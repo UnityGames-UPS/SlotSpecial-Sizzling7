@@ -1,16 +1,19 @@
 fileFormatVersion: 2
-guid: 1a7486f6ce2321640bd4f58d7ee4e9b9
+guid: 27cdbfaafc3515f4a8fd41dfae35e817
 TextureImporter:
   internalIDToNameTable:
   - first:
-      213: -948033515455220674
-    second: FREE_GAME_TEXT_0
+      213: 769069953165854595
+    second: sizzing 7's_btn_11_0
   - first:
-      213: -5543734297252225499
-    second: FREE_GAME_TEXT_1
+      213: 6658678874227255573
+    second: sizzing 7's_btn_11_1
   - first:
-      213: 3611446845215716240
-    second: FREE_GAME_TEXT_2
+      213: 5962252680971704844
+    second: sizzing 7's_btn_11_2
+  - first:
+      213: 5971659525183896701
+    second: sizzing 7's_btn_11_3
   externalObjects: {}
   serializedVersion: 13
   mipmaps:
@@ -132,23 +135,89 @@ TextureImporter:
     serializedVersion: 2
     sprites:
     - serializedVersion: 2
-      name: FREE_GAME_TEXT_2
+      name: sizzing 7's_btn_11_0
       rect:
         serializedVersion: 2
-        x: 12
-        y: 61
-        width: 2128
-        height: 562
+        x: 10
+        y: 720
+        width: 300
+        height: 179
       alignment: 0
-      pivot: {x: 0.5, y: 0.5}
+      pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: 093b94e75cf6e1230800000000000000
-      internalID: 3611446845215716240
+      spriteID: 38780e53c094caa00800000000000000
+      internalID: 769069953165854595
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: sizzing 7's_btn_11_1
+      rect:
+        serializedVersion: 2
+        x: 10
+        y: 489
+        width: 300
+        height: 179
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 519a6bb2821686c50800000000000000
+      internalID: 6658678874227255573
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: sizzing 7's_btn_11_2
+      rect:
+        serializedVersion: 2
+        x: 10
+        y: 258
+        width: 300
+        height: 179
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: c0a5076593d2eb250800000000000000
+      internalID: 5962252680971704844
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: sizzing 7's_btn_11_3
+      rect:
+        serializedVersion: 2
+        x: 10
+        y: 27
+        width: 300
+        height: 179
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: d7cf92ee2b89fd250800000000000000
+      internalID: 5971659525183896701
       vertices: []
       indices: 
       edges: []
@@ -157,7 +226,7 @@ TextureImporter:
     customData: 
     physicsShape: []
     bones: []
-    spriteID: 71f5f932424922b4293212d3018a9dee
+    spriteID: 
     internalID: 0
     vertices: []
     indices: 
@@ -167,9 +236,10 @@ TextureImporter:
     spriteCustomMetadata:
       entries: []
     nameFileIdTable:
-      FREE_GAME_TEXT_0: -948033515455220674
-      FREE_GAME_TEXT_1: -5543734297252225499
-      FREE_GAME_TEXT_2: 3611446845215716240
+      sizzing 7's_btn_11_0: 769069953165854595
+      sizzing 7's_btn_11_1: 6658678874227255573
+      sizzing 7's_btn_11_2: 5962252680971704844
+      sizzing 7's_btn_11_3: 5971659525183896701
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 

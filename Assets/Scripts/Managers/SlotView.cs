@@ -697,6 +697,9 @@ public class SlotView : MonoBehaviour
         }
     }
 
+    // loopCount <= 0 means "animate indefinitely" — used by the free-games trigger so the scatters
+    // keep playing through the whole intro/pick sequence. They're stopped by the first free spin's
+    // StartSpin -> KillAllTweens -> KillWinTweens.
     internal void AnimateAllScatters(int loopCount)
     {
         if (currentDisplayMatrix == null) return;
@@ -847,11 +850,17 @@ public class SlotView : MonoBehaviour
             imageAnim.StartAnimation();
         });
 
-        seq.AppendInterval(winSymbolLoopDuration * loopCount);
+        // loopCount <= 0 means run indefinitely — skip scheduling the stop entirely and let
+        // whatever kills winTweens end it. Must stay conditional: PlayStopAnimationsForColumn
+        // passes 1 for wild hits and relies on the timed stop.
+        if (loopCount > 0)
+        {
+            seq.AppendInterval(winSymbolLoopDuration * loopCount);
 
-        seq.AppendCallback(() => {
-            if (imageAnim != null) imageAnim.StopAnimation(); // reverts to textureArray[0], which equals the resting sprite
-        });
+            seq.AppendCallback(() => {
+                if (imageAnim != null) imageAnim.StopAnimation(); // reverts to textureArray[0], which equals the resting sprite
+            });
+        }
 
         winTweens.Add(seq);
     }

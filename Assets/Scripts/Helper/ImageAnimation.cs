@@ -86,7 +86,14 @@ public class ImageAnimation : MonoBehaviour
             indexOfTexture = 0;
             currentLoopCount++;
             onLoopComplete?.Invoke(currentLoopCount);
-            
+
+            // onLoopComplete is where callers end the animation (StopAnimation cancels the pending
+            // Invoke and clears the state). Without this check the loop below would immediately
+            // schedule another Invoke, resurrecting an animation that was just stopped — and since
+            // the state now reads NONE, no later StopAnimation could ever kill it again. That left
+            // the animation writing over the icon's sprite forever, for the rest of the session.
+            if (currentAnimationState != ImageState.PLAYING) return;
+
             if (doLoopAnimation)
             {
                 Invoke(nameof(AnimationProcess), delayBetweenAnimation + delayBetweenLoop);
@@ -152,16 +159,25 @@ public class ImageAnimation : MonoBehaviour
 
     public void StopAnimation()
     {
-        if (currentAnimationState != ImageState.NONE)
+        bool wasRunning = currentAnimationState != ImageState.NONE;
+
+        // Cancel unconditionally. If the state and the pending Invoke ever disagree, that
+        // mismatch is exactly what leaves an animation running with no way to stop it, so a
+        // stop request must always clear the schedule regardless of what the state claims.
+        CancelInvoke(nameof(AnimationProcess));
+        currentAnimationState = ImageState.NONE;
+        currentLoopCount = 0;
+
+        // The sprite revert stays conditional: KillWinTweens calls StopAnimation on every display
+        // icon each spin, and writing textureArray[0] unconditionally would stamp a stale
+        // animation frame over icons that were showing the correct result.
+        if (wasRunning)
         {
             EnsureRenderer();
             if (rendererDelegate != null && textureArray != null && textureArray.Count > 0)
             {
                 rendererDelegate.sprite = textureArray[0];
             }
-            CancelInvoke(nameof(AnimationProcess));
-            currentAnimationState = ImageState.NONE;
-            currentLoopCount = 0;
         }
     }
 

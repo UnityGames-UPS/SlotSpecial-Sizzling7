@@ -194,6 +194,10 @@ public class ServerPayload
     public List<ServerWinningLine> winningLines;
     public double totalWin;
     public bool isFreeSpin;                        // True when this spin was played on free-spin credit
+    public int freeSpinsRemaining;                 // Server-authoritative; already decremented for this spin
+    // Nullable on purpose: the server omits this entirely on spins it doesn't apply to, and a
+    // missing value must never be read as a real multiplier of 0.
+    public double? freeSpinsMultiplier;
     public ServerResultFeatures features;
 }
 
@@ -210,15 +214,20 @@ public class ServerWinningLine
 [Serializable]
 public class ServerResultFeatures
 {
-    public ServerScatterResult scatter;
+    public ServerBonusResult bonus;
     public bool freeGamesTriggered;
     public int awardedSpins;
+    public string boxId;                            // Which mystery box the server picked ("red"/"yellow"/"blue"/"green")
 }
 
+// The bonus/scatter symbol landing that triggers free games. JSON key is "bonus".
 [Serializable]
-public class ServerScatterResult
+public class ServerBonusResult
 {
     public bool triggered;
+    public int bonusCount;
+    public List<List<int>> positions;               // [row, col] pairs, row in the padded 0-4 space
+    public double award;                            // Cash paid by the bonus symbols themselves
 }
 
 // Dormant CNY-era result models — no longer referenced by ServerPayload, kept because
@@ -355,13 +364,13 @@ public class SpinResult
     public OverlayScatterData overlayScatterData; // Keep for safety/UI compilation
     public Dictionary<string, int> stickyWilds;  // Keep for safety/UI compilation
 
-    // Server-authoritative free spin state — currently always defaults (see InitDataConverter);
-    // real "in free spin round" sample data is needed to wire this up fully (deferred).
+    // Per-response free spin facts. Round-level aggregates (spins used, total awarded, total
+    // round win) are deliberately NOT here — the wire format doesn't carry them, so GameManager
+    // accumulates those across the round instead of the model inventing values.
     public int serverSpinsRemaining;
-    public int serverSpinsUsed;
-    public int serverTotalSpins;
-    public double serverTotalRoundWin;
     public bool isRoundOver;
+    // Informational only — the server has already applied this to winAmount. Never multiply by it.
+    public double? freeSpinsMultiplier;
 
     // Dormant — CNY-era wheel/moneybag features, never populated from real server data
     public USpinResultData uSpinData;
@@ -399,6 +408,7 @@ public class FreeSpinData
     public int spinsAwarded;
     public int remainingSpins;
     public bool isBought;
+    public string boxId;   // Which mystery box the server picked; presentation only
 }
 
 [Serializable]
@@ -474,9 +484,8 @@ public enum SpinSpeed
 
 public enum WinPopupType
 {
-    BigWin,             // Win at or above GameManager.bigWinMultiplierThreshold
-    FreeSpinTrigger,    // Free games awarded
-    FreeSpinComplete    // All free spins completed
+    BigWin              // Win at or above GameManager.bigWinMultiplierThreshold
+    // Free-games trigger/complete presentation lives in FreeGameView, not this popup.
 }
 
 #endregion
@@ -554,9 +563,11 @@ public static class InitDataConverter
         double totalPay = betAmount * activeLine;
         double newBalance = serverResponse.player?.balance ?? CalculateNewBalance(currentBalance, totalPay, winAmountVal);
 
-        bool freeGamesTriggered = serverResponse.payload.features != null && serverResponse.payload.features.freeGamesTriggered;
-        bool scatterTriggered = serverResponse.payload.features != null && serverResponse.payload.features.scatter != null && serverResponse.payload.features.scatter.triggered;
-        int awardedSpins = serverResponse.payload.features != null ? serverResponse.payload.features.awardedSpins : 0;
+        var features = serverResponse.payload.features;
+        bool freeGamesTriggered = features != null && features.freeGamesTriggered;
+        bool bonusTriggered = features != null && features.bonus != null && features.bonus.triggered;
+        int awardedSpins = features != null ? features.awardedSpins : 0;
+        string boxId = features != null ? features.boxId : null;
 
         var result = new SpinResult
         {
@@ -571,36 +582,35 @@ public static class InitDataConverter
                 currentBetIndex = 0
             },
 
-            // Minimal, safe wiring — trigger flag + awarded count only. Full free-games round
-            // handling (box pick, multiplier tier, remaining-spins tracking) is deferred until
-            // real "in free spin" sample data is available.
             freeSpinData = freeGamesTriggered
                 ? new FreeSpinData
                 {
                     isTriggered = true,
                     spinsAwarded = awardedSpins,
                     remainingSpins = awardedSpins,
-                    isBought = false
+                    isBought = false,
+                    boxId = boxId
                 }
                 : null,
 
-            scatterData = scatterTriggered
+            scatterData = bonusTriggered
                 ? new ScatterData
                 {
                     isTriggered = true,
-                    scatterCount = 0,
-                    winAmount = 0
+                    scatterCount = features.bonus.bonusCount,
+                    winAmount = features.bonus.award
                 }
                 : null,
 
             overlayScatterData = null,
             stickyWilds = null,
 
-            serverSpinsRemaining = 0,
-            serverSpinsUsed = 0,
-            serverTotalSpins = 0,
-            serverTotalRoundWin = 0,
-            isRoundOver = false,
+            serverSpinsRemaining = serverResponse.payload.freeSpinsRemaining,
+            // Only a *free* spin can end the round. The first base-game spin after a round still
+            // reports freeSpinsRemaining: 0, and without the isFreeSpin guard every ordinary spin
+            // would look like a round ending.
+            isRoundOver = serverResponse.payload.isFreeSpin && serverResponse.payload.freeSpinsRemaining <= 0,
+            freeSpinsMultiplier = serverResponse.payload.freeSpinsMultiplier,
 
             uSpinData = null,
             moneyBagData = null

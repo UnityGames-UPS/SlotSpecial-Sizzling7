@@ -1,0 +1,507 @@
+fileFormatVersion: 2
+guid: 2a1201d879a4c544b8179a83f4a74916
+TextureImporter:
+  internalIDToNameTable:
+  - first:
+      213: 7482523297835357927
+    second: Multiplier_X3_text_0
+  - first:
+      213: -7612497596950492257
+    second: Multiplier_X3_text_1
+  - first:
+      213: -7137196709530917622
+    second: Multiplier_X3_text_2
+  - first:
+      213: 2321165606454953739
+    second: Multiplier_X3_text_3
+  - first:
+      213: -6271837529116788815
+    second: Multiplier_X3_text_4
+  - first:
+      213: -4806703436353733000
+    second: Multiplier_X3_text_5
+  - first:
+      213: 6777421926779567142
+    second: Multiplier_X3_text_6
+  - first:
+      213: 6586230634329122023
+    second: Multiplier_X3_text_7
+  - first:
+      213: -6484849471480135461
+    second: Multiplier_X3_text_8
+  - first:
+      213: 1148583660696778096
+    second: Multiplier_X3_text_9
+  - first:
+      213: 6328755633937715423
+    second: Multiplier_X3_text_10
+  - first:
+      213: 2558845702321185704
+    second: Multiplier_X3_text_11
+  - first:
+      213: 4022457201543614294
+    second: Multiplier_X3_text_12
+  - first:
+      213: -6709306619973382405
+    second: Multiplier_X3_text_13
+  externalObjects: {}
+  serializedVersion: 13
+  mipmaps:
+    mipMapMode: 0
+    enableMipMap: 0
+    sRGBTexture: 1
+    linearTexture: 0
+    fadeOut: 0
+    borderMipMap: 0
+    mipMapsPreserveCoverage: 0
+    alphaTestReferenceValue: 0.5
+    mipMapFadeDistanceStart: 1
+    mipMapFadeDistanceEnd: 3
+  bumpmap:
+    convertToNormalMap: 0
+    externalNormalMap: 0
+    heightScale: 0.25
+    normalMapFilter: 0
+    flipGreenChannel: 0
+  isReadable: 0
+  streamingMipmaps: 0
+  streamingMipmapsPriority: 0
+  vTOnly: 0
+  ignoreMipmapLimit: 0
+  grayScaleToAlpha: 0
+  generateCubemap: 6
+  cubemapConvolution: 0
+  seamlessCubemap: 0
+  textureFormat: 1
+  maxTextureSize: 2048
+  textureSettings:
+    serializedVersion: 2
+    filterMode: 1
+    aniso: 1
+    mipBias: 0
+    wrapU: 1
+    wrapV: 1
+    wrapW: 1
+  nPOTScale: 0
+  lightmap: 0
+  compressionQuality: 50
+  spriteMode: 2
+  spriteExtrude: 1
+  spriteMeshType: 1
+  alignment: 0
+  spritePivot: {x: 0.5, y: 0.5}
+  spritePixelsToUnits: 100
+  spriteBorder: {x: 0, y: 0, z: 0, w: 0}
+  spriteGenerateFallbackPhysicsShape: 1
+  alphaUsage: 1
+  alphaIsTransparency: 1
+  spriteTessellationDetail: -1
+  textureType: 8
+  textureShape: 1
+  singleChannelComponent: 0
+  flipbookRows: 1
+  flipbookColumns: 1
+  maxTextureSizeSet: 0
+  compressionQualitySet: 0
+  textureFormatSet: 0
+  ignorePngGamma: 0
+  applyGammaDecoding: 0
+  swizzle: 50462976
+  cookieLightType: 0
+  platformSettings:
+  - serializedVersion: 4
+    buildTarget: DefaultTexturePlatform
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  - serializedVersion: 4
+    buildTarget: Standalone
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  - serializedVersion: 4
+    buildTarget: Android
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  - serializedVersion: 4
+    buildTarget: WebGL
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  spriteSheet:
+    serializedVersion: 2
+    sprites:
+    - serializedVersion: 2
+      name: Multiplier_X3_text_0
+      rect:
+        serializedVersion: 2
+        x: 9
+        y: 34
+        width: 120
+        height: 103
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 7e69f079b4347d760800000000000000
+      internalID: 7482523297835357927
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Multiplier_X3_text_1
+      rect:
+        serializedVersion: 2
+        x: 132
+        y: 32
+        width: 77
+        height: 77
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: f9b4040b4c9fa5690800000000000000
+      internalID: -7612497596950492257
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Multiplier_X3_text_2
+      rect:
+        serializedVersion: 2
+        x: 213
+        y: 34
+        width: 34
+        height: 103
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: a05a25c386593fc90800000000000000
+      internalID: -7137196709530917622
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Multiplier_X3_text_3
+      rect:
+        serializedVersion: 2
+        x: 246
+        y: 33
+        width: 57
+        height: 96
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: b070a9d22df663020800000000000000
+      internalID: 2321165606454953739
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Multiplier_X3_text_4
+      rect:
+        serializedVersion: 2
+        x: 304
+        y: 109
+        width: 33
+        height: 28
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 1b7b7043ff4f5f8a0800000000000000
+      internalID: -6271837529116788815
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Multiplier_X3_text_5
+      rect:
+        serializedVersion: 2
+        x: 304
+        y: 34
+        width: 33
+        height: 76
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 87e7c7f01b82b4db0800000000000000
+      internalID: -4806703436353733000
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Multiplier_X3_text_6
+      rect:
+        serializedVersion: 2
+        x: 340
+        y: 8
+        width: 79
+        height: 103
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 62cb3a6855d3e0e50800000000000000
+      internalID: 6777421926779567142
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Multiplier_X3_text_7
+      rect:
+        serializedVersion: 2
+        x: 420
+        y: 34
+        width: 34
+        height: 103
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 7e4abf7ddddf66b50800000000000000
+      internalID: 6586230634329122023
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Multiplier_X3_text_8
+      rect:
+        serializedVersion: 2
+        x: 457
+        y: 109
+        width: 33
+        height: 28
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: bd00c8e83cf2106a0800000000000000
+      internalID: -6484849471480135461
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Multiplier_X3_text_9
+      rect:
+        serializedVersion: 2
+        x: 457
+        y: 34
+        width: 33
+        height: 76
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 07536a201c690ff00800000000000000
+      internalID: 1148583660696778096
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Multiplier_X3_text_10
+      rect:
+        serializedVersion: 2
+        x: 491
+        y: 32
+        width: 77
+        height: 79
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: fd01c17c7b144d750800000000000000
+      internalID: 6328755633937715423
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Multiplier_X3_text_11
+      rect:
+        serializedVersion: 2
+        x: 567
+        y: 34
+        width: 55
+        height: 77
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 8a3a3e1eb98d28320800000000000000
+      internalID: 2558845702321185704
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Multiplier_X3_text_12
+      rect:
+        serializedVersion: 2
+        x: 612
+        y: 8
+        width: 155
+        height: 146
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 65f083e4383a2d730800000000000000
+      internalID: 4022457201543614294
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Multiplier_X3_text_13
+      rect:
+        serializedVersion: 2
+        x: 758
+        y: 8
+        width: 111
+        height: 149
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: bfe4f433d21c3e2a0800000000000000
+      internalID: -6709306619973382405
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    outline: []
+    customData: 
+    physicsShape: []
+    bones: []
+    spriteID: 
+    internalID: 0
+    vertices: []
+    indices: 
+    edges: []
+    weights: []
+    secondaryTextures: []
+    spriteCustomMetadata:
+      entries: []
+    nameFileIdTable:
+      Multiplier_X3_text_0: 7482523297835357927
+      Multiplier_X3_text_1: -7612497596950492257
+      Multiplier_X3_text_10: 6328755633937715423
+      Multiplier_X3_text_11: 2558845702321185704
+      Multiplier_X3_text_12: 4022457201543614294
+      Multiplier_X3_text_13: -6709306619973382405
+      Multiplier_X3_text_2: -7137196709530917622
+      Multiplier_X3_text_3: 2321165606454953739
+      Multiplier_X3_text_4: -6271837529116788815
+      Multiplier_X3_text_5: -4806703436353733000
+      Multiplier_X3_text_6: 6777421926779567142
+      Multiplier_X3_text_7: 6586230634329122023
+      Multiplier_X3_text_8: -6484849471480135461
+      Multiplier_X3_text_9: 1148583660696778096
+  mipmapLimitGroupName: 
+  pSDRemoveMatte: 0
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 

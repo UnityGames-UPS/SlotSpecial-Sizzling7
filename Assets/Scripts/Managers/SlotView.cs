@@ -38,11 +38,18 @@ public class SlotView : MonoBehaviour
     [Header("Reel Containers")]
     [SerializeField] private Transform[] reelTransforms;
 
-    [Header("Reel Images - bufferRowsAbove + 7 images per reel (3 visible + 2 decorative below + spin-loop buffer above)")]
+    [Header("Reel Images")]
     [SerializeField] private List<ReelImages> reelImagesList;
 
+    [Header("Symbol Sizing")]
+    [Tooltip("Rect size used by every symbol except the Bonus.")]
+    [SerializeField] private Vector2 normalSymbolSize = new Vector2(335f, 275f);
+    [Tooltip("Rect size used for the Bonus symbol, whose art is drawn at a different scale. Applied on reel icons and win-layer slots alike.")]
+    [SerializeField] private Vector2 bonusSymbolSize = new Vector2(350f, 350f);
+
     [Header("Spin Settings")]
-    [SerializeField] private float symbolHeight = 100f;
+    [Tooltip("Must match the actual icon pitch in the scene (275). Drives the spin loop's travel distance, which has to be a whole number of pitches or the loop's wrap-around is visible.")]
+    [SerializeField] private float symbolHeight = 275f;
     [SerializeField] private float spinSpeed = 6000f;
     [SerializeField] private float reelStartStagger = 0.08f;
     [SerializeField] private float reelStopStagger = 0.12f;
@@ -74,6 +81,14 @@ public class SlotView : MonoBehaviour
     [SerializeField] private float quickStopOvershoot = 20f;
     [SerializeField] private float quickStopDuration = 0.2f;
 
+    [Header("Bonus Anticipation")]
+    [Tooltip("Effects shown around a reel that could still complete a bonus trigger. Index 0 = reel 2, index 1 = reel 3. Reel 1 can never anticipate, since two bonuses must already have landed.")]
+    [SerializeField] private GameObject[] anticipationEffects = new GameObject[2];
+    [Tooltip("Extra time the anticipating reel (and every reel after it) keeps spinning.")]
+    [SerializeField] private float anticipationExtraTime = 2f;
+    [Tooltip("Shorter hold used when the player is on Turbo.")]
+    [SerializeField] private float anticipationExtraTimeTurbo = 1f;
+
     [Header("Continuous Spin (Tween) Settings")]
     [Tooltip("Filler image slots prepended above the visible window, giving the continuous spin loop room to travel before it has to wrap.")]
     [SerializeField] private int bufferRowsAbove = 16;
@@ -86,6 +101,14 @@ public class SlotView : MonoBehaviour
     [SerializeField] private int winSymbolLoopCount = 3;
     [Tooltip("Delay between enabling winBox overlay and starting the ImageAnimation - for sync timing")]
     [SerializeField] private float winLineBoxToAnimationDelay = 0.05f;
+
+    [Header("Win Presentation Layer")]
+    [Tooltip("Dark sheet covering the reel area during a win. Snaps on/off, no fade.")]
+    [SerializeField] private GameObject winDimOverlay;
+    [Tooltip("Root of the layer holding the bright winning symbols, drawn above the dim.")]
+    [SerializeField] private GameObject winAnimationLayer;
+    [Tooltip("One entry per reel column, each holding the 3 active-row slots top to bottom.")]
+    [SerializeField] private List<AnimSlotColumn> animSlotColumns = new List<AnimSlotColumn>(3);
 
     [Header("Phase 1 Total Win Presentation")]
     [SerializeField] private TMPro.TMP_Text phase1TotalWinText;
@@ -103,6 +126,10 @@ public class SlotView : MonoBehaviour
 
     private float lastSpinStartTime;
     private Coroutine preloadResultCoroutine;
+
+    // Which reel is being held back to tease a bonus this spin, or -1. Set before the reels start
+    // stopping; StopSingleReel raises and clears the effect off its own landing events.
+    private int anticipationReelIndex = -1;
 
 
     internal List<List<int>> currentDisplayMatrix;
@@ -139,7 +166,20 @@ public class SlotView : MonoBehaviour
     private void DisableAllOverlays()
     {
         HidePhase1TotalWinText();
+        HideAnticipationEffects();
+        HideWinSlots();
+        HideWinDim();
         if (symbolInfoCard) symbolInfoCard.HideCard();
+    }
+
+    private void HideAnticipationEffects()
+    {
+        anticipationReelIndex = -1;
+        if (anticipationEffects == null) return;
+        foreach (var effect in anticipationEffects)
+        {
+            if (effect != null) effect.SetActive(false);
+        }
     }
 
     private void SetupSymbolButtons()
@@ -332,7 +372,7 @@ public class SlotView : MonoBehaviour
             if (row < reel.displayImages.Count && reel.displayImages[row] != null)
             {
                 int symbolId = visibleSymbolIds[row];
-                reel.displayImages[row].sprite = GetSymbolSprite(symbolId);
+                ApplySymbol(reel.displayImages[row], symbolId);
             }
         }
     }
@@ -403,6 +443,24 @@ public class SlotView : MonoBehaviour
         return symbolSprites[symbolId];
     }
 
+    // Single place that puts a symbol onto an icon. Sprite and size are set together on purpose:
+    // the Bonus symbol's art is drawn at a different scale to the rest, so it needs a larger rect.
+    // Because every write goes through here and always sets one size or the other, an icon that
+    // showed a Bonus is snapped back to normal as soon as it's given any other symbol — no reset
+    // pass to maintain and no way for an icon to get stuck oversized.
+    private void ApplySymbol(Image image, int symbolId)
+    {
+        if (image == null) return;
+
+        image.sprite = GetSymbolSprite(symbolId);
+
+        int bonusId = (gameManager != null && gameManager.gameConfig != null)
+            ? gameManager.gameConfig.scatterSymbolId
+            : 0;
+
+        image.rectTransform.sizeDelta = (symbolId == bonusId) ? bonusSymbolSize : normalSymbolSize;
+    }
+
     // Randomizes the pure spin-loop scroll buffer. images now holds only buffer icons (the 5
     // real display-block icons live in displayImages instead), so no start/end boundary math
     // is needed — every entry here is fair game for random filler.
@@ -414,7 +472,10 @@ public class SlotView : MonoBehaviour
 
         for (int i = 0; i < reel.images.Count; i++)
         {
-            reel.images[i].sprite = GetSymbolSprite(Random.Range(0, 7));
+            // Held in a variable so ApplySymbol can size it — Random.Range(0, 7) includes the
+            // Bonus id, so buffer filler resizes as it scrolls past just like a landed one.
+            int symbolId = Random.Range(0, 7);
+            ApplySymbol(reel.images[i], symbolId);
         }
     }
 
@@ -543,9 +604,20 @@ public class SlotView : MonoBehaviour
         // ever called, so there's no need for a separate discrete-cycle-count gate here.
         float stagger = isQuickStop ? quickStopStagger : reelStopStagger;
 
+        // Skipped entirely on a quick stop — that path covers both QuickSpin mode and the player
+        // hitting Stop, and neither should sit through the hold. StopSingleReel reads this field
+        // to know when to raise and clear the effect.
+        anticipationReelIndex = isQuickStop ? -1 : ComputeAnticipationReel(resultMatrix);
+        int anticipationReel = anticipationReelIndex;
+        float anticipationHold = GetAnticipationHold();
+
         for (int col = 0; col < ReelCount; col++)
         {
+            // The anticipating reel and every reel after it shift back by the same amount, so the
+            // reels still land left to right.
             float delay = col * stagger;
+            if (anticipationReel >= 0 && col >= anticipationReel) delay += anticipationHold;
+
             StartCoroutine(StopSingleReel(col, resultMatrix[col], delay, isQuickStop));
         }
 
@@ -560,11 +632,74 @@ public class SlotView : MonoBehaviour
             longestStopTime = lastColumnDelay + stopDuration;
         }
 
+        // The whole hand-off waits too, so the win presentation can't start while a reel is
+        // still held.
+        if (anticipationReel >= 0) longestStopTime += anticipationHold;
+
         yield return new WaitForSeconds(longestStopTime);
 
         isSpinning = false;
 
         onComplete?.Invoke();
+    }
+
+    // Which reel (if any) should be held back to tease a possible bonus trigger, or -1 for none.
+    // Two bonuses must already be showing on reels that land earlier, and only one reel per spin
+    // ever anticipates. Reel 0 can never qualify — nothing has landed before it.
+    private int ComputeAnticipationReel(List<List<int>> resultMatrix)
+    {
+        if (resultMatrix == null || ReelCount < 2) return -1;
+
+        int reel0 = CountBonusInColumn(resultMatrix, 0);
+
+        // Both bonuses on the first reel. Normally reel 1 takes the tease, but if reel 1 has no
+        // bonus at all the tease moves to reel 2 so it lands on a reel that can still deliver.
+        if (reel0 >= 2)
+        {
+            if (ReelCount > 1 && CountBonusInColumn(resultMatrix, 1) >= 1) return 1;
+            return ReelCount > 2 ? 2 : -1;
+        }
+
+        // One on each of the first two reels — the usual case, tease the last reel.
+        if (ReelCount > 2 && reel0 + CountBonusInColumn(resultMatrix, 1) >= 2) return 2;
+
+        return -1;
+    }
+
+    // Bounded to the active/paying rows — a bonus sitting in a decorative row doesn't count
+    // toward a trigger, so it must not drive the tease either.
+    private int CountBonusInColumn(List<List<int>> matrix, int col)
+    {
+        if (matrix == null || col < 0 || col >= matrix.Count || matrix[col] == null) return 0;
+
+        int bonusId = gameManager?.gameConfig != null ? gameManager.gameConfig.scatterSymbolId : 0;
+        if (bonusId < 0) return 0;
+
+        int activeRowStart = ActiveRowStart;
+        int activeRowEnd = Mathf.Min(activeRowStart + RowCount, matrix[col].Count);
+
+        int count = 0;
+        for (int row = activeRowStart; row < activeRowEnd; row++)
+        {
+            if (matrix[col][row] == bonusId) count++;
+        }
+        return count;
+    }
+
+    private float GetAnticipationHold()
+    {
+        bool isTurbo = gameManager != null && gameManager.currentSpinSpeed == SpinSpeed.Turbo;
+        return isTurbo ? anticipationExtraTimeTurbo : anticipationExtraTime;
+    }
+
+    // effects[0] belongs to reel index 1, effects[1] to reel index 2 — reel 0 can never anticipate.
+    private void SetAnticipationEffect(int reelIndex, bool visible)
+    {
+        int effectIndex = reelIndex - 1;
+        if (anticipationEffects == null || effectIndex < 0 || effectIndex >= anticipationEffects.Length) return;
+
+        GameObject effect = anticipationEffects[effectIndex];
+        if (effect != null) effect.SetActive(visible);
     }
 
     private IEnumerator StopSingleReel(int columnIndex, List<int> targetSymbols, float delay, bool isQuickStop)
@@ -612,6 +747,14 @@ public class SlotView : MonoBehaviour
         }
         // ──────────────────────────────────────────────────────────────────
 
+        // The reel immediately before the anticipating one is starting its landing right now —
+        // that's the slam the effect should come in on. Driven off the actual event rather than a
+        // computed timestamp so it can't drift out of sync with the staggers or the hold.
+        if (anticipationReelIndex >= 0 && columnIndex == anticipationReelIndex - 1)
+        {
+            SetAnticipationEffect(anticipationReelIndex, true);
+        }
+
         if (isQuickStop)
         {
             Sequence quickStopSequence = DOTween.Sequence();
@@ -636,7 +779,18 @@ public class SlotView : MonoBehaviour
             // Ease.OutBack's built-in overshoot-and-settle curve instead of two separate tweens.
             Tween stopTween = slotTransform.DOLocalMoveY(middlePosition, stopDuration)
                 .SetEase(stopEase, stopEaseOvershoot)
-                .OnComplete(() => PlayStopAnimationsForColumn(columnIndex));
+                .OnComplete(() =>
+                {
+                    // This reel was the one being teased and has now landed — clear the effect
+                    // whether or not the bonus actually turned up.
+                    if (columnIndex == anticipationReelIndex)
+                    {
+                        SetAnticipationEffect(anticipationReelIndex, false);
+                        anticipationReelIndex = -1;
+                    }
+
+                    PlayStopAnimationsForColumn(columnIndex);
+                });
 
             spinTweens[columnIndex] = stopTween;
         }
@@ -968,6 +1122,8 @@ public class SlotView : MonoBehaviour
         int completedCount = 0;
         bool isCompleted = false;
 
+        bool anyShown = false;
+
         foreach (int flatIndex in flatPositions)
         {
             int row = flatIndex / ReelCount;
@@ -975,35 +1131,44 @@ public class SlotView : MonoBehaviour
 
             if (col < 0 || col >= ReelCount || row < 0 || row >= rowLimit) continue;
 
-            if (col >= reelImagesList.Count) continue;
-            var reel = reelImagesList[col];
-            if (reel.displayImages == null) continue;
+            // Image lookup goes to the animation layer, which holds only the 3 active rows —
+            // so the local row index maps straight across with no ActiveRowStart offset.
+            if (animSlotColumns == null || col >= animSlotColumns.Count) continue;
+            var column = animSlotColumns[col];
+            if (column == null || column.rows == null || row >= column.rows.Count) continue;
 
-            int displayIndex = ActiveRowStart + row;
-            if (displayIndex >= reel.displayImages.Count) continue;
+            AnimSlot slot = column.rows[row];
+            if (slot == null || slot.image == null) continue;
 
-            Image symbolImage = reel.displayImages[displayIndex];
-            if (symbolImage == null) continue;
+            Image slotImage = slot.image;
 
-            ImageAnimation imageAnim = symbolImage.GetComponent<ImageAnimation>();
-            if (imageAnim == null) continue;
-
+            // Data lookup is a separate concern: currentDisplayMatrix is the full 5-row server
+            // matrix, so it still needs the offset into active-row space.
             int matrixRow = ActiveRowStart + row;
             if (col >= currentDisplayMatrix.Count || matrixRow >= currentDisplayMatrix[col].Count) continue;
             int symbolId = currentDisplayMatrix[col][matrixRow];
-            if (symbolId < 0 || symbolId >= animationSpriteArrays.Length) continue;
 
+            // Show the symbol first, unconditionally. Some symbols have no animation frames at all
+            // (animSpritesBonus is empty), and under the dim a skipped slot would leave a winning
+            // symbol sitting dark while its neighbours light up.
+            slotImage.DOKill();
+            ApplySymbol(slotImage, symbolId);
+            slotImage.transform.localScale = Vector3.one;
+            Color c = slotImage.color;
+            slotImage.color = new Color(c.r, c.g, c.b, 1f);
+            slotImage.gameObject.SetActive(true);
+            anyShown = true;
+
+            // Animate on top of that only if this symbol actually has frames.
+            if (symbolId < 0 || symbolId >= animationSpriteArrays.Length) continue;
             List<Sprite> animSprites = animationSpriteArrays[symbolId];
             if (animSprites == null || animSprites.Count == 0) continue;
 
+            ImageAnimation imageAnim = slot.animation;
+            if (imageAnim == null) continue;
+
             imageAnim.textureArray = animSprites;
             imageAnim.doLoopAnimation = true;
-
-            // ImageAnimation now lives directly on the SlotIcon root, sharing symbolImage —
-            // no separate overlay to activate/fade; just ensure full opacity before playing.
-            symbolImage.DOKill();
-            Color c = symbolImage.color;
-            symbolImage.color = new Color(c.r, c.g, c.b, 1f);
 
             activeAnims.Add(imageAnim);
 
@@ -1021,6 +1186,14 @@ public class SlotView : MonoBehaviour
                     }
                 }
             };
+        }
+
+        // Only raise the dim once something is actually on the layer — otherwise an empty or
+        // fully-invalid position set would darken the reels with nothing shown on top.
+        if (anyShown)
+        {
+            if (winDimOverlay != null) winDimOverlay.SetActive(true);
+            if (winAnimationLayer != null) winAnimationLayer.SetActive(true);
         }
 
         if (winLineBoxToAnimationDelay > 0)
@@ -1243,6 +1416,60 @@ public class SlotView : MonoBehaviour
             RestoreImageList(reel.images);
             RestoreImageList(reel.displayImages);
         }
+
+        // The win-layer slots are cleared on *every* call, including the between-cycle reset in
+        // Phase 2 — each cycle shows one win line, so the previous line's symbols have to go
+        // before the next line's appear. Its Image and ImageAnimation are separate explicit
+        // references, so this can't reuse RestoreImageList's GetComponent-based pass.
+        if (animSlotColumns != null)
+        {
+            foreach (var column in animSlotColumns)
+            {
+                if (column == null || column.rows == null) continue;
+                foreach (var slot in column.rows)
+                {
+                    if (slot == null) continue;
+
+                    if (slot.image != null)
+                    {
+                        slot.image.DOKill();
+                        slot.image.transform.localScale = Vector3.one;
+                        Color c = slot.image.color;
+                        slot.image.color = new Color(c.r, c.g, c.b, 1f);
+                    }
+
+                    if (slot.animation != null)
+                    {
+                        slot.animation.onLoopComplete = null;
+                        slot.animation.StopAnimation();
+                    }
+                }
+            }
+        }
+        HideWinSlots();
+
+        // The dim itself only comes down on a full teardown. Hiding it on the between-cycle reset
+        // would make it strobe once per win line.
+        if (stopCoroutine) HideWinDim();
+    }
+
+    private void HideWinSlots()
+    {
+        if (animSlotColumns == null) return;
+        foreach (var column in animSlotColumns)
+        {
+            if (column == null || column.rows == null) continue;
+            foreach (var slot in column.rows)
+            {
+                if (slot != null && slot.image != null) slot.image.gameObject.SetActive(false);
+            }
+        }
+    }
+
+    private void HideWinDim()
+    {
+        if (winDimOverlay != null) winDimOverlay.SetActive(false);
+        if (winAnimationLayer != null) winAnimationLayer.SetActive(false);
     }
 
     #endregion
@@ -1279,6 +1506,26 @@ public class SlotView : MonoBehaviour
     }
 
     #endregion
+}
+
+// One win-animation slot: the Image that shows the symbol and the ImageAnimation that plays it.
+// Both are wired explicitly rather than found with GetComponent — a missing component would
+// otherwise just silently no-op, and these icons must have one while the reel icons must not.
+// Kept in a single struct so the two can never drift out of step with each other.
+[System.Serializable]
+public class AnimSlot
+{
+    public Image image;
+    public ImageAnimation animation;
+}
+
+// One reel column's worth of win-animation slots. These live on a layer above the dim overlay,
+// so a winning symbol can be shown bright while the real reel icon stays dimmed underneath.
+// Only the 3 active/paying rows exist here — no decorative rows, so no ActiveRowStart offset.
+[System.Serializable]
+public class AnimSlotColumn
+{
+    public List<AnimSlot> rows = new List<AnimSlot>(3);   // index 0 = top active row
 }
 
 [System.Serializable]

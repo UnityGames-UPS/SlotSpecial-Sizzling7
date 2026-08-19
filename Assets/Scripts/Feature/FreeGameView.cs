@@ -52,8 +52,9 @@ public class FreeGameView : MonoBehaviour
     [Header("Multiplier Panel")]
     [SerializeField] private GameObject multiplierPanelRoot;
     [SerializeField] private TMPro.TMP_Text multiplierValueText;
-    [SerializeField] private float multiplierPulseScale = 1.15f;
-    [SerializeField] private float multiplierPulseDuration = 0.6f;
+    // Same reasoning as the timing block below — code-owned, not overridable by the scene.
+    private const float multiplierPulseScale = 1.15f;
+    private const float multiplierPulseDuration = 0.6f;
 
     [Header("Free Games Counter")]
     [SerializeField] private GameObject freeSpinCountContainer;
@@ -71,15 +72,17 @@ public class FreeGameView : MonoBehaviour
     [Header("Closing Fade")]
     [SerializeField] private CanvasGroup fadeToBlackGroup;
 
-    [Header("Timing")]
-    [SerializeField] private float frameOpenDuration = 1.25f;
-    [SerializeField] private float frameCloseDuration = 1.0f;
-    [SerializeField] private float textFadeDuration = 0.4f;
-    [SerializeField] private float awardedTextHold = 2.0f;
-    [SerializeField] private float revealHold = 1.5f;
-    [SerializeField] private float boxCrossfadeDuration = 0.4f;
-    [SerializeField] private float totalWinCountUpDuration = 2.0f;
-    [SerializeField] private float fadeToBlackDuration = 0.5f;
+    // Deliberately NOT [SerializeField]. These were serialized, which meant the scene's saved
+    // values silently overrode any change made here — retuning in code appeared to do nothing.
+    // Tuning these is now a code edit, and the code is the single source of truth.
+    private const float frameOpenDuration = 1.25f;
+    private const float frameCloseDuration = 1.0f;
+    private const float textFadeDuration = 0.4f;
+    private const float awardedTextHold = 2.0f;
+    private const float revealHold = 1.5f;
+    private const float boxCrossfadeDuration = 0.4f;
+    private const float totalWinCountUpDuration = 2.0f;
+    private const float fadeToBlackDuration = 0.5f;
 
     // Live box instances for the current round, destroyed on reset.
     private readonly List<GameObject> spawnedBacks = new List<GameObject>();

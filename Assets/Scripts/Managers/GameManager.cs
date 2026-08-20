@@ -272,6 +272,11 @@ public class GameManager : MonoBehaviour
 
     private void OnReelsStoppedComplete()
     {
+        // Safety net. StopSpinSequence already cuts the loop at the exact landing moment, but it is
+        // bypassed entirely when SlotView has no reels or no result matrix to stop onto. Without this
+        // the loop would run until the next spin restarted it. No-ops when already stopped.
+        AudioManager.Instance?.StopSpinLoop();
+
         if (lastResult != null)
         {
             double featureDeferredWin = lastResult.GetTotalFeatureDeferredWins();

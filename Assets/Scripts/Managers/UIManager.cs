@@ -26,6 +26,9 @@ public class UIManager : MonoBehaviour
     [SerializeField] private Button betMinusButton;
     [Header("Bet Controls - Portrait")]
     [SerializeField] private TMP_Text betAmountTextPortrait;
+    [Tooltip("Number of paylines currently being bet on. Scene objects are named LIneCountTxt (note the capital I).")]
+    [SerializeField] private TMP_Text lineCountText;
+    [SerializeField] private TMP_Text lineCountTextPortrait;
     [SerializeField] private Button betPlusButtonPortrait;
     [SerializeField] private Button betMinusButtonPortrait;
 
@@ -497,6 +500,16 @@ public class UIManager : MonoBehaviour
         UpdateBetDisplay();
         UpdateBalanceDisplay();
         UpdateWinDisplay(0);
+        UpdateLineCountDisplay();
+    }
+
+    // Server-driven and fixed for the session — set once on init rather than per spin.
+    private void UpdateLineCountDisplay()
+    {
+        if (gameManager == null || gameManager.gameConfig == null) return;
+
+        string lines = gameManager.gameConfig.activeLine.ToString();
+        SetTMPText(lineCountText, lineCountTextPortrait, lines);
     }
 
     internal void OnSpinStarted()
@@ -832,7 +845,7 @@ public class UIManager : MonoBehaviour
 
     private void OnSpeedButtonPressed()
     {
-        AudioManager.Instance?.PlayButton();
+        AudioManager.Instance?.PlayTurboButton();
         SetSpeedMode(GetNextSpinSpeed(gameManager.currentSpinSpeed));
     }
 
@@ -1286,9 +1299,11 @@ public class UIManager : MonoBehaviour
 
     #region Helper Methods
 
+    // Plain-text money (balance, win box, total pay). Shares its format with the sprite-digit
+    // displays via SpriteTextFormatter.MoneyFormat so the two can't drift apart.
     private string FormatAmount(double amount)
     {
-        return amount.ToString("0.###");
+        return amount.ToString(SpriteTextFormatter.MoneyFormat);
     }
 
     private void SetBetControlsEnabled(bool enabled)
@@ -1379,10 +1394,10 @@ public class UIManager : MonoBehaviour
 
         if (bigWinAmount != null && bigWinAmount.gameObject.activeSelf && winAmount > 0)
         {
-            int decimals = GetDecimalPlaces(winAmount);
-            string formatStr = decimals > 0 ? "0." + new string('0', decimals) : "0";
-
-            bigWinAmount.text = SpriteTextFormatter.ToSpriteDigits((0.0).ToString(formatStr));
+            // Fixed money format throughout the count-up. This previously derived its decimal
+            // count from the win value, so a 4.8 win counted with one decimal while a whole
+            // number counted as integers — the same inconsistency the money format now removes.
+            bigWinAmount.text = SpriteTextFormatter.ToSpriteMoney(0);
 
             float countUpDuration = (type == WinPopupType.BigWin) ? 3.8f : 1.0f;
 
@@ -1390,13 +1405,13 @@ public class UIManager : MonoBehaviour
             {
                 if (bigWinAmount != null)
                 {
-                    bigWinAmount.text = SpriteTextFormatter.ToSpriteDigits(val.ToString(formatStr));
+                    bigWinAmount.text = SpriteTextFormatter.ToSpriteMoney(val);
                 }
             }).OnComplete(() =>
             {
                 if (bigWinAmount != null)
                 {
-                    bigWinAmount.text = SpriteTextFormatter.ToSpriteDigits(FormatAmount(winAmount));
+                    bigWinAmount.text = SpriteTextFormatter.ToSpriteMoney(winAmount);
                 }
                 uwpWinTween = null;
             });
@@ -1404,15 +1419,6 @@ public class UIManager : MonoBehaviour
 
         if (uwpAutoCloseCoroutine != null) StopCoroutine(uwpAutoCloseCoroutine);
         uwpAutoCloseCoroutine = StartCoroutine(AutoCloseUniversalWinPopup());
-    }
-
-    private int GetDecimalPlaces(double amount)
-    {
-        double rounded = System.Math.Round(amount, 4);
-        string str = rounded.ToString(System.Globalization.CultureInfo.InvariantCulture);
-        int dotIndex = str.IndexOf('.');
-        if (dotIndex < 0) return 0;
-        return str.Length - dotIndex - 1;
     }
 
     private IEnumerator AutoCloseUniversalWinPopup()

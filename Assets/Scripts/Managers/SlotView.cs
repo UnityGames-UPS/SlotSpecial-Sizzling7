@@ -109,6 +109,8 @@ public class SlotView : MonoBehaviour
     [SerializeField] private GameObject winAnimationLayer;
     [Tooltip("One entry per reel column, each holding the 3 active-row slots top to bottom.")]
     [SerializeField] private List<AnimSlotColumn> animSlotColumns = new List<AnimSlotColumn>(3);
+    [Tooltip("The 27 payline graphics, indexed directly by the server's lineIndex — element 0 is line 0. Shown one at a time during the Phase 2 cycle. Leave an element empty if its art doesn't exist yet; it's skipped with a warning naming the index.")]
+    [SerializeField] private Image[] winLineGraphics = new Image[27];
 
     [Header("Phase 1 Total Win Presentation")]
     [SerializeField] private TMPro.TMP_Text phase1TotalWinText;
@@ -168,6 +170,7 @@ public class SlotView : MonoBehaviour
         HidePhase1TotalWinText();
         HideAnticipationEffects();
         HideWinSlots();
+        HideAllWinLines();
         HideWinDim();
         if (symbolInfoCard) symbolInfoCard.HideCard();
     }
@@ -640,6 +643,12 @@ public class SlotView : MonoBehaviour
 
         isSpinning = false;
 
+        // Cut the spin loop here rather than in the controller's OnReelsStoppedComplete: this is the
+        // real moment the last reel lands, and on a quick stop the controller waits another 0.5s for
+        // the snap to settle before it runs. Anticipation is already accounted for, since the hold is
+        // folded into longestStopTime above — a teased reel keeps the loop running while it spins on.
+        AudioManager.Instance?.StopSpinLoop();
+
         onComplete?.Invoke();
     }
 
@@ -729,21 +738,29 @@ public class SlotView : MonoBehaviour
         // ── Play reel-stop sound immediately when symbols lock in ──────────
         AudioManager.Instance?.PlayReelStop();
 
-        // Detect wild symbols in this column for hit sounds — bounded to active rows only,
-        // since a wild sitting in a decorative row never represents a landed/paying position.
+        // Special-symbol landing cues for this column. Both are bounded to the active rows —
+        // a symbol in a decorative row neither pays nor counts toward a trigger, so it shouldn't
+        // make a sound either — and both fire at most once per reel, not once per symbol.
         if (currentDisplayMatrix != null && columnIndex < currentDisplayMatrix.Count)
         {
             bool hasWild = false;
+            bool hasBonus = false;
             int wildId = gameManager?.gameConfig != null ? gameManager.gameConfig.wildSymbolId : 1;
+            int bonusId = gameManager?.gameConfig != null ? gameManager.gameConfig.scatterSymbolId : 0;
             var column = currentDisplayMatrix[columnIndex];
             int activeRowStart = ActiveRowStart;
             int activeRowEnd = Mathf.Min(activeRowStart + RowCount, column.Count);
 
             for (int r = activeRowStart; r < activeRowEnd; r++)
             {
-                if (column[r] == wildId) { hasWild = true; break; }
+                if (column[r] == wildId) hasWild = true;
+                else if (column[r] == bonusId) hasBonus = true;
+
+                if (hasWild && hasBonus) break;
             }
-            if (hasWild) AudioManager.Instance?.PlayReelStop();
+
+            if (hasWild) AudioManager.Instance?.PlayWildLand();
+            if (hasBonus) AudioManager.Instance?.PlayBonusLand();
         }
         // ──────────────────────────────────────────────────────────────────
 
@@ -1105,6 +1122,10 @@ public class SlotView : MonoBehaviour
 
                 KillWinTweens(false);
 
+                // Lines are a Phase 2 thing only — Phase 1 shows every winning symbol at once
+                // with no line drawn, then this cycle walks them one at a time.
+                ShowWinLine(winLine.lineId);
+
                 // Animate win line symbols and wait for their ImageAnimation loops to complete
                 yield return StartCoroutine(AnimateWinPositions(winLine.positions));
             }
@@ -1220,7 +1241,7 @@ public class SlotView : MonoBehaviour
     {
         if (phase1TotalWinText != null)
         {
-            phase1TotalWinText.text = SpriteTextFormatter.ToSpriteDigits(totalWinAmount.ToString("0.###"));
+            phase1TotalWinText.text = SpriteTextFormatter.ToSpriteMoney(totalWinAmount);
             AnimateTextScaleAppear(phase1TotalWinText.transform);
         }
     }
@@ -1448,6 +1469,10 @@ public class SlotView : MonoBehaviour
         }
         HideWinSlots();
 
+        // Lines clear on every call too — Phase 2 shows one at a time, so the previous line has
+        // to go before the next is raised.
+        HideAllWinLines();
+
         // The dim itself only comes down on a full teardown. Hiding it on the between-cycle reset
         // would make it strobe once per win line.
         if (stopCoroutine) HideWinDim();
@@ -1463,6 +1488,38 @@ public class SlotView : MonoBehaviour
             {
                 if (slot != null && slot.image != null) slot.image.gameObject.SetActive(false);
             }
+        }
+    }
+
+    // Raises one payline graphic. Indexed straight off the server's lineIndex, so there's no
+    // naming convention or lookup table to keep in step with the backend.
+    private void ShowWinLine(int lineId)
+    {
+        if (winLineGraphics == null) return;
+
+        if (lineId < 0 || lineId >= winLineGraphics.Length)
+        {
+            Debug.LogWarning($"[SlotView] Win line index {lineId} is outside winLineGraphics ({winLineGraphics.Length} entries) — no line shown.");
+            return;
+        }
+
+        Image line = winLineGraphics[lineId];
+        if (line == null)
+        {
+            // Names the index so a missing asset is identifiable rather than just absent.
+            Debug.LogWarning($"[SlotView] No graphic assigned for win line index {lineId} — no line shown.");
+            return;
+        }
+
+        line.gameObject.SetActive(true);
+    }
+
+    private void HideAllWinLines()
+    {
+        if (winLineGraphics == null) return;
+        foreach (var line in winLineGraphics)
+        {
+            if (line != null) line.gameObject.SetActive(false);
         }
     }
 

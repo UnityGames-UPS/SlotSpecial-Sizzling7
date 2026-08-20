@@ -33,6 +33,10 @@ public class AudioManager : MonoBehaviour
     [SerializeField] private AudioSource uiSource;
     [SerializeField] private AudioSource wheelSegmentSource;
     [SerializeField] private AudioSource reserveSource;
+    [Tooltip("Dedicated source for the spin loop. Needs its own source because the loop is stopped " +
+             "at landing, and stopping a shared source would cut the reel-stop one-shots firing at " +
+             "that same moment.")]
+    [SerializeField] private AudioSource spinLoopSource;
 
     [Header("Audio Clips")]
     [SerializeField] private AudioClip clipGameMainBg;
@@ -40,15 +44,27 @@ public class AudioManager : MonoBehaviour
     [SerializeField] private AudioClip clipMaxBetReached;
     [SerializeField] private AudioClip clip3UspinWinLineLoop;
     [SerializeField] private AudioClip clipWinObjectBg;
+    [Tooltip("Spin button only. Stop / Take / AutoplayStop share clipPrimaryActionButton below.")]
+    [SerializeField] private AudioClip clipSpinStart;
     [SerializeField] private AudioClip clipPrimaryActionButton;
     [SerializeField] private AudioClip clipGeneralButtonClick;
     [SerializeField] private AudioClip clipPopupOpenClose;
     [SerializeField] private AudioClip clipAutoplayPanelOpen;
+    [Tooltip("Currently unused — nothing calls PlayFeatureOpenLoop. Kept deliberately.")]
     [SerializeField] private AudioClip clipFeatureOpenLoop;
     [SerializeField] private AudioClip clipFreeSpinBg;
-    [SerializeField] private AudioClip clipWheelSegmentTick;
     [SerializeField] private AudioClip clipWinLinePhase1Start;
     [SerializeField] private AudioClip clipReelStop;
+    [Tooltip("Plays once for any reel that lands at least one wild in the active rows.")]
+    [SerializeField] private AudioClip clipWildLand;
+    [Tooltip("Plays once for any reel that lands at least one bonus in the active rows.")]
+    [SerializeField] private AudioClip clipBonusLand;
+    [SerializeField] private AudioClip clipTurboButton;
+
+    [Header("Audio Clips - Free Games")]
+    [SerializeField] private AudioClip clipFreeGamesAwarded;
+    [SerializeField] private AudioClip clipChooseFreeGames;
+    [SerializeField] private AudioClip clipCardReveal;
 
     private bool _musicEnabled = true;
     private bool _sfxEnabled   = true;
@@ -104,6 +120,7 @@ public class AudioManager : MonoBehaviour
         if (uiSource           != null) uiSource.volume           = v;
         if (wheelSegmentSource != null) wheelSegmentSource.volume = v;
         if (reserveSource      != null) reserveSource.volume      = v;
+        if (spinLoopSource     != null) spinLoopSource.volume     = v;
     }
 
     /// <summary>
@@ -133,6 +150,17 @@ public class AudioManager : MonoBehaviour
         source.clip   = clip;
         source.loop   = true;
         source.volume = _musicEnabled ? _musicVolume : 0f;
+        source.Play();
+    }
+
+    // PlayLoop's sfx-volume twin. The loops above are all music-bed sounds; a looping *effect*
+    // has to follow the sfx toggle instead, or muting sfx would leave it audible.
+    private void PlaySfxLoop(AudioSource source, AudioClip clip)
+    {
+        if (source == null || clip == null) return;
+        source.clip   = clip;
+        source.loop   = true;
+        source.volume = _sfxEnabled ? _sfxVolume : 0f;
         source.Play();
     }
 
@@ -211,13 +239,39 @@ public class AudioManager : MonoBehaviour
         }
     }
 
-    // 6. Spin / Stop / Take / AutoplayStop / WheelStart Btn Sound
+    // 6. Stop / Take / AutoplayStop / WheelStart Btn Sound
     internal void PlayPrimaryActionButton()
     {
         PlayUISound(clipPrimaryActionButton != null ? clipPrimaryActionButton : clipGeneralButtonClick);
     }
 
-    internal void PlaySpinStart()    => PlayPrimaryActionButton();
+    // Spin is a *duration* sound, not a button click: it loops for as long as the reels turn and is
+    // cut by StopSpinLoop at landing. Played as a one-shot it ran on past the landing (the clip is
+    // several seconds long) and stacked a fresh copy on every autoplay spin, since PlayOneShot never
+    // cancels the previous one.
+    internal void PlaySpinStart()
+    {
+        if (!_sfxEnabled) return;
+
+        if (clipSpinStart != null)
+        {
+            PlaySfxLoop(spinLoopSource, clipSpinStart);
+        }
+        else
+        {
+            // No spin clip assigned: fall back to the shared primary-action click as a one-shot.
+            // Looping a button click would be worse than the missing sound it stands in for.
+            PlayUISound(clipPrimaryActionButton);
+        }
+    }
+
+    // Safe to call when nothing is playing, which is what lets the two call sites in the reel-stop
+    // path both fire without coordinating.
+    internal void StopSpinLoop()
+    {
+        StopSource(spinLoopSource);
+    }
+
     internal void PlaySpinStop()     => PlayPrimaryActionButton();
     internal void PlayTakeButton()   => PlayPrimaryActionButton();
     internal void PlayAutoplayStop() => PlayPrimaryActionButton();
@@ -269,20 +323,6 @@ public class AudioManager : MonoBehaviour
         PlayLoop(bgMusicSource, clipFreeSpinBg);
     }
 
-    // 12. Bonus Wheel Spin Segment Tick
-    internal void PlayWheelSegmentTick()
-    {
-        if (!_sfxEnabled || clipWheelSegmentTick == null) return;
-        if (wheelSegmentSource != null)
-        {
-            wheelSegmentSource.PlayOneShot(clipWheelSegmentTick);
-        }
-        else
-        {
-            PlayUISound(clipWheelSegmentTick);
-        }
-    }
-
     // 13. Win Line Phase 1 Start
     internal void PlayWinLinePhase1Start()
     {
@@ -299,6 +339,18 @@ public class AudioManager : MonoBehaviour
         else
             PlayUISound(clipReelStop);
     }
+
+    // 15. Special symbol landings — one shot per reel that contains at least one, not per symbol.
+    internal void PlayWildLand()  => PlayUISound(clipWildLand);
+    internal void PlayBonusLand() => PlayUISound(clipBonusLand);
+
+    // 16. Turbo / spin-speed toggle
+    internal void PlayTurboButton() => PlayUISound(clipTurboButton);
+
+    // 17. Free games presentation cues
+    internal void PlayFreeGamesAwarded() => PlayUISound(clipFreeGamesAwarded);
+    internal void PlayChooseFreeGames()  => PlayUISound(clipChooseFreeGames);
+    internal void PlayCardReveal()       => PlayUISound(clipCardReveal);
 
     private bool isForceMuted = false;
 

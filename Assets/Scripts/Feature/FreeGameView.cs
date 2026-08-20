@@ -218,6 +218,10 @@ public class FreeGameView : MonoBehaviour
 
         frameRoot.SetActive(true);
         frameRect.localScale = Vector3.zero;
+
+        // Cue lands with the frame starting to grow, since the text is visible from that moment.
+        AudioManager.Instance?.PlayFreeGamesAwarded();
+
         yield return frameRect.DOScale(1f, frameOpenDuration).SetEase(Ease.OutQuad).WaitForCompletion();
 
         // Hold at full size, then clear it to make way for the pick.
@@ -226,6 +230,7 @@ public class FreeGameView : MonoBehaviour
 
         // "CHOOSE YOUR FREE GAMES" plus the boxes.
         SpawnBoxes(boxId, awardedSpins);
+        AudioManager.Instance?.PlayChooseFreeGames();
         yield return FadeGroup(chooseTextGroup, 1f);
 
         yield return new WaitUntil(() => boxPicked);
@@ -331,6 +336,8 @@ public class FreeGameView : MonoBehaviour
     {
         if (pickedSlotIndex < 0) yield break;
 
+        AudioManager.Instance?.PlayCardReveal();
+
         CanvasGroup backGroup = GetGroupAt(spawnedBacks, pickedSlotIndex);
         CanvasGroup frontGroup = GetGroupAt(spawnedFronts, pickedSlotIndex);
 
@@ -365,19 +372,19 @@ public class FreeGameView : MonoBehaviour
         if (totalWinText != null)
         {
             totalWinText.gameObject.SetActive(true);
-            totalWinText.text = SpriteTextFormatter.ToSpriteDigits("0");
+            totalWinText.text = SpriteTextFormatter.ToSpriteMoney(0);
 
             totalWinTween = DOVirtual.Float(0f, (float)totalRoundWin, totalWinCountUpDuration, value =>
             {
                 if (totalWinText != null)
                 {
-                    totalWinText.text = SpriteTextFormatter.ToSpriteDigits(value.ToString("0.###"));
+                    totalWinText.text = SpriteTextFormatter.ToSpriteMoney(value);
                 }
             }).OnComplete(() =>
             {
                 if (totalWinText != null)
                 {
-                    totalWinText.text = SpriteTextFormatter.ToSpriteDigits(totalRoundWin.ToString("0.###"));
+                    totalWinText.text = SpriteTextFormatter.ToSpriteMoney(totalRoundWin);
                 }
                 totalWinTween = null;
                 countUpDone = true;

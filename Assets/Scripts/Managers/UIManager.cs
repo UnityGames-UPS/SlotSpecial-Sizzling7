@@ -110,12 +110,25 @@ public class UIManager : MonoBehaviour
     [SerializeField] private Button settingsBgCloseButtonPortrait;
     [SerializeField] private Button gameQuitButtonPortrait;
 
+    // All four sprites a Sprite Swap button needs, kept together. Setting only the idle sprite
+    // (what this used to do) leaves the Button's own SpriteState untouched, so hovering showed
+    // whichever mode's hover art was baked into the scene regardless of the current mode.
+    [System.Serializable]
+    public class ButtonSpriteSet
+    {
+        public Sprite normal;
+        public Sprite highlighted;
+        public Sprite pressed;
+        public Sprite disabled;
+    }
+
     [Header("Speed Button (Sprite-Swapped Cycle)")]
     [SerializeField] private Button speedButton;
     [SerializeField] private Button speedButtonPortrait;
-    [SerializeField] private Sprite spriteSpeedNormal;
-    [SerializeField] private Sprite spriteSpeedTurbo;
-    [SerializeField] private Sprite spriteSpeedQuickSpin;
+    [Tooltip("Landscape and portrait share these — both buttons use the same art.")]
+    [SerializeField] private ButtonSpriteSet speedNormalSprites;
+    [SerializeField] private ButtonSpriteSet speedTurboSprites;
+    [SerializeField] private ButtonSpriteSet speedQuickSpinSprites;
 
     [Header("Sound Panel")]
     [SerializeField] private GameObject soundPanel;
@@ -194,6 +207,9 @@ public class UIManager : MonoBehaviour
     // Which popup is currently open — BigWin uses its own open/close animation, so the close
     // path (which has no type parameter of its own) needs to know what was shown.
     private WinPopupType currentPopupType;
+    // The amount the count-up is heading for. Taking early kills that tween mid-number, so the
+    // close path needs the target to snap the label to before it collapses.
+    private double uwpTargetWinAmount;
     [SerializeField] private float uwpAutoCloseDelay = 5f;
 
     private void Awake()
@@ -868,21 +884,49 @@ public class UIManager : MonoBehaviour
 
     private void UpdateSpeedButtonsVisibility(SpinSpeed speed)
     {
-        Sprite targetSprite;
+        ButtonSpriteSet targetSet;
         switch (speed)
         {
-            case SpinSpeed.Turbo: targetSprite = spriteSpeedTurbo; break;
-            case SpinSpeed.QuickSpin: targetSprite = spriteSpeedQuickSpin; break;
-            default: targetSprite = spriteSpeedNormal; break;
+            case SpinSpeed.Turbo: targetSet = speedTurboSprites; break;
+            case SpinSpeed.QuickSpin: targetSet = speedQuickSpinSprites; break;
+            default: targetSet = speedNormalSprites; break;
         }
-        SetSpeedButtonSprite(targetSprite);
+
+        ApplyButtonSprites(speedButton, targetSet);
+        ApplyButtonSprites(speedButtonPortrait, targetSet);
     }
 
-    private void SetSpeedButtonSprite(Sprite sprite)
+    /// <summary>
+    /// Swaps every visual state of a Sprite Swap button at once. Assigning only the idle sprite
+    /// leaves the hover/pressed/disabled art on whatever the scene baked in, which is how the speed
+    /// button ended up showing Normal's hover graphic while in Turbo or QuickSpin.
+    /// </summary>
+    private void ApplyButtonSprites(Button button, ButtonSpriteSet set)
     {
-        if (sprite == null) return;
-        if (speedButton) { var img = speedButton.GetComponent<Image>(); if (img) img.sprite = sprite; }
-        if (speedButtonPortrait) { var img = speedButtonPortrait.GetComponent<Image>(); if (img) img.sprite = sprite; }
+        if (button == null || set == null) return;
+
+        // button.image is targetGraphic as Image — respects whichever graphic the button actually
+        // drives, unlike a GetComponent<Image>() on the same object.
+        Image img = button.image;
+        if (img != null && set.normal != null)
+        {
+            // Sprite Swap shows its hover art via overrideSprite, and the mode only ever changes
+            // from a click — so the pointer is still over the button and the old mode's hover
+            // sprite would stay on screen until it left. Clearing it shows the new mode's idle art
+            // immediately; Unity re-applies the correct hover on the next pointer event.
+            img.overrideSprite = null;
+            img.sprite = set.normal;
+        }
+
+        // spriteState is a struct property: mutating its fields in place does nothing, the whole
+        // value has to be reassigned. selectedSprite is deliberately left null, matching how these
+        // buttons are authored in the scene.
+        button.spriteState = new SpriteState
+        {
+            highlightedSprite = set.highlighted,
+            pressedSprite = set.pressed,
+            disabledSprite = set.disabled
+        };
     }
 
     #endregion
@@ -1351,6 +1395,7 @@ public class UIManager : MonoBehaviour
         isSpecialWinActive = true;
         universalWinPopupCallback = onTakePressed;
         currentPopupType = type;
+        uwpTargetWinAmount = winAmount;
 
         if (uwpWinTween != null)
         {
@@ -1368,9 +1413,11 @@ public class UIManager : MonoBehaviour
 
         SetSpinStopButtonStates(isSpinningState: false, isInteractable: false);
 
-        // BigWin is the only popup type left and it auto-closes, so the Take button stays hidden.
-        SetButtonActive(uwpTakeButton, uwpTakeButtonPortrait, false);
-        SetButtonInteractable(uwpTakeButton, uwpTakeButtonPortrait, false);
+        // Take lets the player cut the popup short. It still auto-closes after uwpAutoCloseDelay if
+        // they don't press it — without the button the ~5s presentation was unskippable, since the
+        // big-win path disables every other control for its whole duration.
+        SetButtonActive(uwpTakeButton, uwpTakeButtonPortrait, true);
+        SetButtonInteractable(uwpTakeButton, uwpTakeButtonPortrait, true);
 
         universalWinPopup.SetActive(true);
         if (universalWinPopupRect)
@@ -1443,8 +1490,16 @@ public class UIManager : MonoBehaviour
 
         if (uwpWinTween != null)
         {
+            // Snap to the full amount before killing the count-up. Taking early stops it wherever it
+            // had reached, so without this the player would watch a partial figure collapse away —
+            // and the number they were shown wouldn't be the number they were paid.
             uwpWinTween.Kill();
             uwpWinTween = null;
+
+            if (bigWinAmount != null)
+            {
+                bigWinAmount.text = SpriteTextFormatter.ToSpriteMoney(uwpTargetWinAmount);
+            }
         }
 
         if (uwpAutoCloseCoroutine != null)

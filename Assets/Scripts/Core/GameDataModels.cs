@@ -318,6 +318,10 @@ public class GameConfig
     // Scatter configuration
     public int scatterSymbolId = 0;    // Bonus is ID 0
 
+    // Blank/filler configuration. Defaults to 7 to match the current symbol table, but is
+    // overwritten from the server's "blank" group in ConvertToGameConfig.
+    public int blankSymbolId = 7;
+
     public int betMultiplier = 1;          // Unused by any real gameplay calc — kept only for UI-compile safety
     public int maxWinMultiplier = 10000;   // Unused by any real gameplay calc — kept only for UI-compile safety
     public int minWinMultiplier = 10;      // Unused by any real gameplay calc — kept only for UI-compile safety
@@ -336,6 +340,8 @@ public class SymbolInfo
     public List<double> multipliers;
     public bool isWild;
     public bool isScatter;
+    // Filler symbol — never pays, never animates, and is not clickable for an info card.
+    public bool isBlank;
     public int wildMultiplier = 1;
     public int minMatch;
 }
@@ -523,7 +529,13 @@ public static class InitDataConverter
                 name = serverSymbol.name,
                 multipliers = new List<double>(),
                 isWild = serverSymbol.group == "wild",
-                isScatter = serverSymbol.group == "scatter",
+                // The server calls the free-games trigger symbol group "bonus"; "scatter" is the
+                // CNY-era name this field still carries. Matching the wrong string left isScatter
+                // permanently false, so SymbolInfoCard rendered Bonus as an ordinary symbol with a
+                // 0 payout instead of its "3 or more trigger Free Games" text, and scatterSymbolId
+                // was never assigned — it only held the right id because its default happens to be 0.
+                isScatter = serverSymbol.group == "bonus",
+                isBlank = serverSymbol.group == "blank",
                 minMatch = serverSymbol.minMatch
             };
 
@@ -538,6 +550,10 @@ public static class InitDataConverter
             if (symbolInfo.isScatter)
             {
                 config.scatterSymbolId = symbolInfo.id;
+            }
+            if (symbolInfo.isBlank)
+            {
+                config.blankSymbolId = symbolInfo.id;
             }
         }
 

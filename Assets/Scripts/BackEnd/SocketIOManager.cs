@@ -82,24 +82,32 @@ public class SocketIOManager : MonoBehaviour
 
     void ReceiveAuthToken(string jsonData)
     {
-        if (socketSetupStarted)
-        {
-            Debug.LogWarning("[SocketIO] Duplicate auth token ignored");
-            return;
-        }
-
         Debug.Log($"[SocketIO] Auth received");
 
         try
         {
             var authData = JsonUtility.FromJson<AuthTokenData>(jsonData);
-            authToken = authData.cookie;
-            socketURL = authData.socketURL;
+            string incomingToken = authData.cookie;
+            string incomingSocketURL = authData.socketURL;
+            string incomingNameSpace = !string.IsNullOrEmpty(authData.nameSpace) ? authData.nameSpace : nameSpace;
 
-            if (!string.IsNullOrEmpty(authData.nameSpace))
+            // Only a genuine repeat is ignored. This used to bail on socketSetupStarted alone, which
+            // also threw away a *new* token — so a refreshed session or a changed endpoint left the
+            // game talking to the old socket. Compare the credentials instead, and re-initialize
+            // when they actually differ.
+            if (socketSetupStarted
+                && authToken == incomingToken
+                && socketURL == incomingSocketURL
+                && nameSpace == incomingNameSpace)
             {
-                nameSpace = authData.nameSpace;
+                Debug.LogWarning("[SocketIO] Matching auth token received, bypassing re-initialization.");
+                return;
             }
+
+            Debug.Log("[SocketIO] New or updated auth token received. Cleaning up old socket and re-initializing.");
+            authToken = incomingToken;
+            socketURL = incomingSocketURL;
+            nameSpace = incomingNameSpace;
 
             InitializeSocket();
         }
@@ -111,8 +119,13 @@ public class SocketIOManager : MonoBehaviour
 
     private void InitializeSocket()
     {
-        if (socketSetupStarted) return;
+        // No socketSetupStarted early-out any more: ReceiveAuthToken now decides whether a re-auth
+        // is genuine, and this has to be able to run a second time to act on one.
         socketSetupStarted = true;
+
+        // The previous session's health check must not outlive its socket, or two ping coroutines
+        // race and the miss counter belongs to neither.
+        StopPingRoutine();
 
         // Defensive: tear down any prior manager before building a new one
         if (socketManager != null)
@@ -120,6 +133,13 @@ public class SocketIOManager : MonoBehaviour
             try { socketManager.Close(); } catch { }
             socketManager = null;
         }
+
+        // Session state belongs to the socket being replaced. isInitialized especially: leaving it
+        // true would make OnSocketConnected treat the fresh connection as a reconnect and start
+        // pinging before this session's game:init has arrived.
+        isInitialized = false;
+        isConnected = false;
+        isExiting = false;
 
         if (RaycastBlocker) RaycastBlocker.SetActive(true);
 
@@ -177,8 +197,16 @@ public class SocketIOManager : MonoBehaviour
             popupManager.CloseReconnectionPopup();
         }
 
-        StartPingRoutine();
-        SendPing();
+        // First connect deliberately does NOT start pinging here — it waits for game:init, since the
+        // server has no session to answer a ping against until then. See OnInitReceived.
+        //
+        // A *re*connect is different: isInitialized is already true and the server may not send a
+        // second game:init, so there would be nothing left to start the routine. Restart it here.
+        if (isInitialized)
+        {
+            StartPingRoutine();
+            SendPing();
+        }
     }
 
     private void OnSocketDisconnected()
@@ -265,6 +293,14 @@ public class SocketIOManager : MonoBehaviour
             var initialMatrix = GenerateRandomMatrix(gameConfig.totalResponseRowCount, gameConfig.reelCount);
 
             isInitialized = true;
+
+            // Health-check pings start here rather than on connect. Pinging before init left a
+            // waitingForPong that the server never answered, and PingRoutine's isInitialized gate
+            // meant that stale flag was counted as a miss the instant this line ran — surfacing a
+            // reconnection popup seconds into a perfectly healthy session.
+            // StartPingRoutine stops any existing coroutine first, so a re-sent init is harmless.
+            StartPingRoutine();
+            SendPing();
 
             gameManager.OnInitDataReceived(gameConfig, playerData, initialMatrix);
 

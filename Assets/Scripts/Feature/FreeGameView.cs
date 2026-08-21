@@ -38,6 +38,9 @@ public class FreeGameView : MonoBehaviour
     [Header("Frame Text")]
     [SerializeField] private CanvasGroup awardedTextGroup;      // "FREE GAMES AWARDED"
     [SerializeField] private CanvasGroup chooseTextGroup;       // "CHOOSE YOUR FREE GAMES"
+    [Tooltip("Heading on the closing summary. The outro used to re-show awardedTextGroup, so the " +
+             "round ended on the same \"FREE GAMES AWARDED\" line it opened with.")]
+    [SerializeField] private CanvasGroup summaryTextGroup;
     [Tooltip("Total win counter shown in the closing summary.")]
     [SerializeField] private TMPro.TMP_Text totalWinText;
 
@@ -83,6 +86,10 @@ public class FreeGameView : MonoBehaviour
     private const float boxCrossfadeDuration = 0.4f;
     private const float totalWinCountUpDuration = 2.0f;
     private const float fadeToBlackDuration = 0.5f;
+    // Applied to both the face-down back and the prize front, since they crossfade in the same
+    // slot — a mismatch would make the reveal jump in size. Has to live here rather than on the
+    // prefabs: CenterInSlot overwrites localScale on every instantiate.
+    private const float boxScale = 0.85f;
 
     // Live box instances for the current round, destroyed on reset.
     private readonly List<GameObject> spawnedBacks = new List<GameObject>();
@@ -180,6 +187,7 @@ public class FreeGameView : MonoBehaviour
 
         SetGroupAlpha(awardedTextGroup, 0f, false);
         SetGroupAlpha(chooseTextGroup, 0f, false);
+        SetGroupAlpha(summaryTextGroup, 0f, false);
 
         pendingTakeCallback = null;
         boxPicked = false;
@@ -210,6 +218,7 @@ public class FreeGameView : MonoBehaviour
         SwapBackgrounds(true);
 
         SetGroupAlpha(chooseTextGroup, 0f, false);
+        SetGroupAlpha(summaryTextGroup, 0f, false);
         if (totalWinText != null) totalWinText.gameObject.SetActive(false);
 
         // "FREE GAMES AWARDED" is already on screen as the frame grows, so it scales up with it
@@ -360,7 +369,10 @@ public class FreeGameView : MonoBehaviour
         frameRect.DOKill();
         frameRect.localScale = Vector3.one;
 
-        SetGroupAlpha(awardedTextGroup, 1f, true);
+        SetGroupAlpha(summaryTextGroup, 1f, true);
+        // Both of the intro's headings are cleared explicitly. They should already be down by now,
+        // but a round cut short earlier could otherwise leave one stacked behind the summary.
+        SetGroupAlpha(awardedTextGroup, 0f, false);
         SetGroupAlpha(chooseTextGroup, 0f, false);
 
         // Take is visible from the start of the summary but greyed out until the count-up ends.
@@ -402,7 +414,7 @@ public class FreeGameView : MonoBehaviour
 
         // Everything reverts while the screen is covered.
         frameRoot.SetActive(false);
-        SetGroupAlpha(awardedTextGroup, 0f, false);
+        SetGroupAlpha(summaryTextGroup, 0f, false);
         if (totalWinText != null) totalWinText.gameObject.SetActive(false);
         if (freeSpinCountContainer != null) freeSpinCountContainer.SetActive(false);
         SwapBackgrounds(false);
@@ -519,7 +531,7 @@ public class FreeGameView : MonoBehaviour
         if (rect == null) return;
 
         rect.anchoredPosition = Vector2.zero;
-        rect.localScale = Vector3.one;
+        rect.localScale = Vector3.one * boxScale;
     }
 
     // These are expected on the prefabs so they can be configured in the Inspector (button

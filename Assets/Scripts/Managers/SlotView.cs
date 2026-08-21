@@ -239,6 +239,18 @@ public class SlotView : MonoBehaviour
         }
 
         int symbolId = currentDisplayMatrix[col][matrixRow];
+
+        // Blanks are filler, not symbols — they have nothing to show. Clicking one closes any open
+        // card rather than ignoring the click, matching the isSpinning guard above: a blank reads as
+        // empty space, so clicking it should behave like clicking away from a symbol.
+        int blankId = (gameManager != null && gameManager.gameConfig != null)
+            ? gameManager.gameConfig.blankSymbolId : 7;
+        if (symbolId == blankId)
+        {
+            if (symbolInfoCard != null) symbolInfoCard.HideCard();
+            return;
+        }
+
         if (symbolInfoCard != null)
         {
             symbolInfoCard.ShowCard(symbolId, col, row, symbolRect, gameManager);
@@ -375,7 +387,10 @@ public class SlotView : MonoBehaviour
             if (row < reel.displayImages.Count && reel.displayImages[row] != null)
             {
                 int symbolId = visibleSymbolIds[row];
-                ApplySymbol(reel.displayImages[row], symbolId);
+                // All five display icons, not just the three active rows: the bottom decorative
+                // icon is drawn above the lowest active symbol and overlaps its lower half, so a
+                // blank there blocks clicks exactly like an in-band one.
+                ApplySymbol(reel.displayImages[row], symbolId, manageRaycast: true);
             }
         }
     }
@@ -451,7 +466,7 @@ public class SlotView : MonoBehaviour
     // Because every write goes through here and always sets one size or the other, an icon that
     // showed a Bonus is snapped back to normal as soon as it's given any other symbol — no reset
     // pass to maintain and no way for an icon to get stuck oversized.
-    private void ApplySymbol(Image image, int symbolId)
+    private void ApplySymbol(Image image, int symbolId, bool manageRaycast = false)
     {
         if (image == null) return;
 
@@ -462,6 +477,26 @@ public class SlotView : MonoBehaviour
             : 0;
 
         image.rectTransform.sizeDelta = (symbolId == bonusId) ? bonusSymbolSize : normalSymbolSize;
+
+        // Blanks must not catch clicks. Symbols always have a blank between them, so real symbols
+        // sit two cells apart (275) and their 275-tall rects tile exactly — a symbol can never
+        // overlap another symbol. The blanks are the only rects that straddle two neighbours, so
+        // while they raycast they swallow clicks meant for the symbol above or below and the info
+        // card never opens. Turning it back on is automatic: every write lands here and sets the
+        // flag either way, so an icon that held a blank is clickable again the moment it's given
+        // a real symbol.
+        //
+        // Opt-in rather than unconditional, because the other two callers must not get this: the
+        // win-animation layer's slots are authored raycast-off and have to stay that way (they sit
+        // above the reels during a win), and the scroll buffer has no info card to open.
+        if (manageRaycast)
+        {
+            int blankId = (gameManager != null && gameManager.gameConfig != null)
+                ? gameManager.gameConfig.blankSymbolId
+                : 7;
+
+            image.raycastTarget = symbolId != blankId;
+        }
     }
 
     // Randomizes the pure spin-loop scroll buffer. images now holds only buffer icons (the 5
@@ -731,7 +766,7 @@ public class SlotView : MonoBehaviour
         // consistent regardless of where in its continuous loop the reel was stopped.
         slotTransform.localPosition = new Vector3(
             slotTransform.localPosition.x,
-            middlePosition - symbolHeight,
+            middlePosition + symbolHeight,
             0
         );
 
@@ -1168,6 +1203,17 @@ public class SlotView : MonoBehaviour
             int matrixRow = ActiveRowStart + row;
             if (col >= currentDisplayMatrix.Count || matrixRow >= currentDisplayMatrix[col].Count) continue;
             int symbolId = currentDisplayMatrix[col][matrixRow];
+
+            // The Bonus never takes part in a line win, but the server lists every cell a payline
+            // passes through — not just the ones that paid — so a Bonus standing on a wild-driven
+            // line arrives here like any other winning symbol. Leaving it dimmed is correct: it
+            // didn't win, and it has its own presentation via AnimateAllScatters when three of
+            // them actually trigger the feature.
+            // (Blanks reach here the same way and are still lit; deliberately left for later.)
+            int winBonusId = (gameManager != null && gameManager.gameConfig != null)
+                ? gameManager.gameConfig.scatterSymbolId
+                : 0;
+            if (symbolId == winBonusId) continue;
 
             // Show the symbol first, unconditionally. Some symbols have no animation frames at all
             // (animSpritesBonus is empty), and under the dim a skipped slot would leave a winning

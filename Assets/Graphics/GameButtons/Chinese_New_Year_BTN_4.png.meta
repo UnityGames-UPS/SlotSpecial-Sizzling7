@@ -191,7 +191,7 @@ TextureImporter:
       name: Chinese_New_Year_BTN_4_1
       rect:
         serializedVersion: 2
-        x: 156
+        x: 155
         y: 536
         width: 106
         height: 106
@@ -235,7 +235,7 @@ TextureImporter:
       name: Chinese_New_Year_BTN_4_3
       rect:
         serializedVersion: 2
-        x: 156
+        x: 155
         y: 408
         width: 106
         height: 106
@@ -279,7 +279,7 @@ TextureImporter:
       name: Chinese_New_Year_BTN_4_5
       rect:
         serializedVersion: 2
-        x: 156
+        x: 155
         y: 280
         width: 106
         height: 106
@@ -323,7 +323,7 @@ TextureImporter:
       name: Chinese_New_Year_BTN_4_7
       rect:
         serializedVersion: 2
-        x: 156
+        x: 155
         y: 152
         width: 106
         height: 106
@@ -367,7 +367,7 @@ TextureImporter:
       name: Chinese_New_Year_BTN_4_9
       rect:
         serializedVersion: 2
-        x: 156
+        x: 155
         y: 28
         width: 106
         height: 106

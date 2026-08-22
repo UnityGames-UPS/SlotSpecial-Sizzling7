@@ -109,8 +109,8 @@ public class SlotView : MonoBehaviour
     [SerializeField] private GameObject winAnimationLayer;
     [Tooltip("One entry per reel column, each holding the 3 active-row slots top to bottom.")]
     [SerializeField] private List<AnimSlotColumn> animSlotColumns = new List<AnimSlotColumn>(3);
-    [Tooltip("The 27 payline graphics, indexed directly by the server's lineIndex — element 0 is line 0. Shown one at a time during the Phase 2 cycle. Leave an element empty if its art doesn't exist yet; it's skipped with a warning naming the index.")]
-    [SerializeField] private Image[] winLineGraphics = new Image[27];
+    [Tooltip("The 27 paylines, indexed directly by the server's lineIndex — element 0 is line 0. Shown one at a time during the Phase 2 cycle. Leave a field empty if its art doesn't exist yet; it's skipped with a warning naming the index.")]
+    [SerializeField] private WinLineVisual[] winLineVisuals = new WinLineVisual[27];
 
     [Header("Phase 1 Total Win Presentation")]
     [SerializeField] private TMPro.TMP_Text phase1TotalWinText;
@@ -1159,7 +1159,7 @@ public class SlotView : MonoBehaviour
 
                 // Lines are a Phase 2 thing only — Phase 1 shows every winning symbol at once
                 // with no line drawn, then this cycle walks them one at a time.
-                ShowWinLine(winLine.lineId);
+                ShowWinLine(winLine.lineId, winLine.winAmount);
 
                 // Animate win line symbols and wait for their ImageAnimation loops to complete
                 yield return StartCoroutine(AnimateWinPositions(winLine.positions));
@@ -1537,35 +1537,58 @@ public class SlotView : MonoBehaviour
         }
     }
 
-    // Raises one payline graphic. Indexed straight off the server's lineIndex, so there's no
-    // naming convention or lookup table to keep in step with the backend.
-    private void ShowWinLine(int lineId)
+    // Raises one payline graphic and writes that line's own payout onto it. Indexed straight off
+    // the server's lineIndex, so there's no naming convention or lookup table to keep in step with
+    // the backend.
+    private void ShowWinLine(int lineId, double winAmount)
     {
-        if (winLineGraphics == null) return;
+        if (winLineVisuals == null) return;
 
-        if (lineId < 0 || lineId >= winLineGraphics.Length)
+        if (lineId < 0 || lineId >= winLineVisuals.Length)
         {
-            Debug.LogWarning($"[SlotView] Win line index {lineId} is outside winLineGraphics ({winLineGraphics.Length} entries) — no line shown.");
+            Debug.LogWarning($"[SlotView] Win line index {lineId} is outside winLineVisuals ({winLineVisuals.Length} entries) — no line shown.");
             return;
         }
 
-        Image line = winLineGraphics[lineId];
-        if (line == null)
+        WinLineVisual visual = winLineVisuals[lineId];
+        if (visual == null)
         {
-            // Names the index so a missing asset is identifiable rather than just absent.
+            Debug.LogWarning($"[SlotView] No entry for win line index {lineId} — no line shown.");
+            return;
+        }
+
+        // The two halves are reported separately: art and label are wired independently, so a
+        // missing one shouldn't suppress the other. Naming the index makes the gap identifiable.
+        if (visual.line != null)
+        {
+            visual.line.gameObject.SetActive(true);
+        }
+        else
+        {
             Debug.LogWarning($"[SlotView] No graphic assigned for win line index {lineId} — no line shown.");
-            return;
         }
 
-        line.gameObject.SetActive(true);
+        if (visual.amount != null)
+        {
+            visual.amount.text = SpriteTextFormatter.ToSpriteMoney(winAmount);
+            visual.amount.gameObject.SetActive(true);
+        }
+        else
+        {
+            Debug.LogWarning($"[SlotView] No amount label assigned for win line index {lineId} — the line will show without its payout.");
+        }
     }
 
     private void HideAllWinLines()
     {
-        if (winLineGraphics == null) return;
-        foreach (var line in winLineGraphics)
+        if (winLineVisuals == null) return;
+        foreach (var visual in winLineVisuals)
         {
-            if (line != null) line.gameObject.SetActive(false);
+            if (visual == null) continue;
+            if (visual.line != null) visual.line.gameObject.SetActive(false);
+            // The label lives under a different parent to the line — it draws in front of the
+            // winning symbols while the line draws behind them — so it needs its own hide.
+            if (visual.amount != null) visual.amount.gameObject.SetActive(false);
         }
     }
 
@@ -1614,6 +1637,18 @@ public class SlotView : MonoBehaviour
 // One win-animation slot: the Image that shows the symbol and the ImageAnimation that plays it.
 // Both are wired explicitly rather than found with GetComponent — a missing component would
 // otherwise just silently no-op, and these icons must have one while the reel icons must not.
+// One payline: its graphic and its payout label. Paired in a single object for the same reason
+// AnimSlot is — two arrays indexed by lineId could silently drift, and the failure would look
+// exactly like the art-ordering bug that already cost a debugging session (line 5 drawn with
+// line 6's amount). The label is NOT a child of the line: lines draw behind the winning symbols
+// and the amounts in front, so they live under different parents and are shown/hidden separately.
+[System.Serializable]
+public class WinLineVisual
+{
+    public Image line;
+    public TMPro.TMP_Text amount;
+}
+
 // Kept in a single struct so the two can never drift out of step with each other.
 [System.Serializable]
 public class AnimSlot

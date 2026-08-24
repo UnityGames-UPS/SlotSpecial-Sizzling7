@@ -14,7 +14,7 @@ public class GameManager : MonoBehaviour
     [Header("Spin Settings")]
     [SerializeField] private float normalSpinDuration = 3.5f;
     [SerializeField] private float turboSpinDuration = 2.0f;
-    [SerializeField] private float quickSpinCycleDuration = 0.8f;
+    [SerializeField] private float quickSpinCycleDuration = 0.1f;
 
     [Header("Win Settings")]
     [SerializeField] private double bigWinMultiplierThreshold = 500.0;
@@ -738,7 +738,7 @@ public class GameManager : MonoBehaviour
         currentBoxId = null;
         currentMultiplier = null;
 
-        uiManager.SetSpinButtonMode(UIManager.SpinButtonMode.Normal);
+        uiManager.SetSpinButtonMode(UIManager.SpinButtonMode.Spin);
         uiManager.SetFreeGamesButtonLock(false);
 
         currentState = GameState.Idle;

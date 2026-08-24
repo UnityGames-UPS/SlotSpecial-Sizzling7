@@ -49,27 +49,33 @@ public class UIManager : MonoBehaviour
     [SerializeField] private GameObject universalWinPopup;
     [SerializeField] private RectTransform universalWinPopupRect;
     [SerializeField] private TMP_Text bigWinAmount;
-    [SerializeField] private Button uwpTakeButton;
-    [Header("Universal Win Popup - Portrait")]
-    [SerializeField] private Button uwpTakeButtonPortrait;
 
+    // One button, six modes. Spin / Stop / Take / AutoplayStop used to be four separate GameObjects
+    // (plus portrait twins) toggled by SetActive, all sitting at the same position and size — so
+    // "which object is active" and "what does the button do" were two things that had to be kept in
+    // step by hand. Now the mode is the single source of truth for the art, the click routing and
+    // the count text.
     [Header("Spin Button")]
     [SerializeField] private Button spinButton;
-    [SerializeField] private Button stopButton;
     [Header("Spin Button - Portrait")]
     [SerializeField] private Button spinButtonPortrait;
-    [SerializeField] private Button stopButtonPortrait;
-    [Header("Spin Button Sprites (Sprite-Swapped Modes)")]
-    [Tooltip("The spin button object is reused for Start and Take during free games.")]
-    [SerializeField] private Sprite spriteSpinButton;
-    [SerializeField] private Sprite spriteStartButton;
-    [SerializeField] private Sprite spriteTakeButton;
 
-    [Header("Auto Play Stop Control")]
-    [SerializeField] private Button autoSpinStopButton;
+    [Header("Spin Button Sprite Sets (one per mode)")]
+    [Tooltip("Landscape and portrait share these — both buttons use the same art.")]
+    [SerializeField] private ButtonSpriteSet spinSprites;
+    [SerializeField] private ButtonSpriteSet stopSprites;
+    [Tooltip("Shared by the free-games summary Take and the big-win popup Take.")]
+    [SerializeField] private ButtonSpriteSet takeSprites;
+    [SerializeField] private ButtonSpriteSet startSprites;
+    [SerializeField] private ButtonSpriteSet autoplayStopSprites;
+
+    [Header("Auto Play Count")]
+    [Tooltip("Was a child of the old AutoplayStopBtn, so it hid with that object. Now a child of " +
+             "the shared spin button, shown only in AutoplayStop mode.")]
+    [SerializeField] private GameObject autoSpinRemainingObject;
     [SerializeField] private TMP_Text autoSpinRemainingText;
-    [Header("Auto Play Stop Control - Portrait")]
-    [SerializeField] private Button autoSpinStopButtonPortrait;
+    [Header("Auto Play Count - Portrait")]
+    [SerializeField] private GameObject autoSpinRemainingObjectPortrait;
     [SerializeField] private TMP_Text autoSpinRemainingTextPortrait;
 
     [Header("Auto Play Panel")]
@@ -251,20 +257,12 @@ public class UIManager : MonoBehaviour
 
     private void InitializeUI()
     {
-        // Fall back to whatever sprite the spin button already has, so returning to Normal mode
-        // still restores correctly even if the spin sprite field was never assigned.
-        if (spriteSpinButton == null && spinButton != null)
-        {
-            var spinImg = spinButton.GetComponent<Image>();
-            if (spinImg != null) spriteSpinButton = spinImg.sprite;
-        }
-
         if (soundPanel) soundPanel.SetActive(false);
         SetGameObjectActive(autoPlayPanel, autoPlayPanelPortrait, false);
         if (autoPlayPanelRect) autoPlayPanelRect.anchoredPosition = new Vector2(autoPlayPanelRect.anchoredPosition.x, -600f);
         if (autoPlayPanelRectPortrait) autoPlayPanelRectPortrait.anchoredPosition = new Vector2(autoPlayPanelRectPortrait.anchoredPosition.x, -600f);
-        SetButtonActive(autoSpinStopButton, autoSpinStopButtonPortrait, false);
 
+        // Puts the button into Spin mode, which also hides the autoplay count.
         SetSpinStopButtonStates(isSpinningState: false, isInteractable: true);
         UpdateSpeedButtonsVisibility(gameManager.currentSpinSpeed);
 
@@ -378,27 +376,8 @@ public class UIManager : MonoBehaviour
             }
         }
 
-        // Stop button
-        if (stopButton) stopButton.onClick.AddListener(OnStopButtonPressed);
-        if (stopButtonPortrait) stopButtonPortrait.onClick.AddListener(OnStopButtonPressed);
-
-        // Auto spin stop button
-        if (autoSpinStopButton)
-        {
-            autoSpinStopButton.onClick.AddListener(() =>
-            {
-                AudioManager.Instance?.PlayAutoplayStop();
-                gameManager.StopAutoPlay();
-            });
-        }
-        if (autoSpinStopButtonPortrait)
-        {
-            autoSpinStopButtonPortrait.onClick.AddListener(() =>
-            {
-                AudioManager.Instance?.PlayAutoplayStop();
-                gameManager.StopAutoPlay();
-            });
-        }
+        // Stop, autoplay-stop and both Takes no longer have buttons of their own — OnSpinButtonPressed
+        // routes to each of them off the current mode.
 
         if (autoPlayCloseButton) autoPlayCloseButton.onClick.AddListener(CloseAutoPlayPanel);
         if (autoPlayCloseButtonPortrait) autoPlayCloseButtonPortrait.onClick.AddListener(CloseAutoPlayPanel);
@@ -408,10 +387,6 @@ public class UIManager : MonoBehaviour
 
         if (expandShrinkButton) expandShrinkButton.onClick.AddListener(() => { AudioManager.Instance?.PlayButton(); OnExpandShrinkButtonPressed(); });
         if (expandShrinkButtonPortrait) expandShrinkButtonPortrait.onClick.AddListener(() => { AudioManager.Instance?.PlayButton(); OnExpandShrinkButtonPressed(); });
-
-        // Take button for universal win popup
-        if (uwpTakeButton) uwpTakeButton.onClick.AddListener(OnUniversalWinTakeButtonClicked);
-        if (uwpTakeButtonPortrait) uwpTakeButtonPortrait.onClick.AddListener(OnUniversalWinTakeButtonClicked);
 
         // Speed button setup (single sprite-swapped cycle button)
         if (speedButton) speedButton.onClick.AddListener(OnSpeedButtonPressed);
@@ -544,7 +519,15 @@ public class UIManager : MonoBehaviour
         }
 
         UpdateBalanceDisplay();
-        UpdateWinDisplay(0);
+
+        // In free games the win box shows the round's running total, so clearing it here made every
+        // spin snap to 0 and then back up once the reels landed. The round total is cleared where it
+        // actually resets: StartFreeSpins before the first spin, and SetSpinButtonMode(Spin) once
+        // the player has taken the win.
+        if (gameManager == null || !gameManager.isInFreeSpins)
+        {
+            UpdateWinDisplay(0);
+        }
 
         CloseAutoPlayPanelImmediate();
     }
@@ -641,86 +624,87 @@ public class UIManager : MonoBehaviour
 
     #region Spin Button
 
+    /// <summary>
+    /// The one click handler for the shared button. Routes entirely on the current mode — what the
+    /// player sees and what the press does can't disagree.
+    /// </summary>
     public void OnSpinButtonPressed()
     {
-        // During free games this same button is Start (before the first spin) or Take (on the
-        // closing summary), so route on the current mode before any normal spin handling.
-        if (spinButtonMode == SpinButtonMode.FreeGamesStart)
+        switch (spinButtonMode)
         {
-            AudioManager.Instance?.PlayButton();
-            SetSpinStopButtonStates(isSpinningState: false, isInteractable: false);
-            gameManager.StartFirstFreeSpin();
-            return;
-        }
-
-        if (spinButtonMode == SpinButtonMode.FreeGamesTake)
-        {
-            AudioManager.Instance?.PlayTakeButton();
-            SetSpinStopButtonStates(isSpinningState: false, isInteractable: false);
-            if (freeGameView != null) freeGameView.OnTakePressed();
-            return;
-        }
-
-        if (gameManager.isAutoPlaying)
-        {
-            AudioManager.Instance?.PlayAutoplayStop();
-            gameManager.StopAutoPlay();
-            return;
-        }
-
-        if (!gameManager.IsSpinning())
-        {
-            gameManager.RequestSpin();
-        }
-    }
-
-    private void OnStopButtonPressed()
-    {
-        if (gameManager.isAutoPlaying)
-        {
-            AudioManager.Instance?.PlayAutoplayStop();
-            gameManager.StopAutoPlay();
-            return;
-        }
-
-        if (gameManager.IsSpinning())
-        {
-            // Rapid-stop cooldown: prevent the player from spamming the stop button
-            if (Time.unscaledTime - lastRapidStopTime < rapidStopCooldown)
+            case SpinButtonMode.FreeGamesStart:
+                AudioManager.Instance?.PlayButton();
+                SetSpinButtonMode(SpinButtonMode.FreeGamesStart, interactable: false);
+                gameManager.StartFirstFreeSpin();
                 return;
 
-            lastRapidStopTime = Time.unscaledTime;
-            AudioManager.Instance?.PlaySpinStop();
-            gameManager.RequestStop();
+            case SpinButtonMode.FreeGamesTake:
+                AudioManager.Instance?.PlayTakeButton();
+                SetSpinButtonMode(SpinButtonMode.FreeGamesTake, interactable: false);
+                if (freeGameView != null) freeGameView.OnTakePressed();
+                return;
+
+            case SpinButtonMode.BigWinTake:
+                OnUniversalWinTakeButtonClicked();
+                return;
+
+            case SpinButtonMode.AutoplayStop:
+                AudioManager.Instance?.PlayAutoplayStop();
+                gameManager.StopAutoPlay();
+                return;
+
+            case SpinButtonMode.Stop:
+                if (gameManager.IsSpinning())
+                {
+                    // Rapid-stop cooldown: prevent the player from spamming the stop button
+                    if (Time.unscaledTime - lastRapidStopTime < rapidStopCooldown) return;
+
+                    lastRapidStopTime = Time.unscaledTime;
+                    AudioManager.Instance?.PlaySpinStop();
+                    gameManager.RequestStop();
+                }
+                return;
+
+            default:
+                // Autoplay can be running while the button still reads Spin (it is re-derived on
+                // every state change), so keep the stop-autoplay path reachable here too.
+                if (gameManager.isAutoPlaying)
+                {
+                    AudioManager.Instance?.PlayAutoplayStop();
+                    gameManager.StopAutoPlay();
+                    return;
+                }
+
+                if (!gameManager.IsSpinning())
+                {
+                    gameManager.RequestSpin();
+                }
+                return;
         }
     }
 
+    /// <summary>
+    /// Derives the button's mode from the current spin/autoplay state. Kept on its original
+    /// signature because ~20 call sites speak in those terms; it now picks a mode instead of
+    /// toggling four GameObjects.
+    /// </summary>
     internal void SetSpinStopButtonStates(bool isSpinningState, bool isInteractable)
     {
-        if (gameManager.isAutoPlaying)
+        // Free-games and big-win modes are owned by whoever set them and outlive the spin events
+        // that would otherwise reset the button — the closing summary in particular has to hold
+        // Take through its count-up. Only the interactable flag is honoured while one is active.
+        if (IsExplicitMode(spinButtonMode))
         {
-            SetButtonActive(spinButton, spinButtonPortrait, false);
-            SetButtonActive(stopButton, stopButtonPortrait, false);
-            SetButtonActive(autoSpinStopButton, autoSpinStopButtonPortrait, true);
-            SetButtonInteractable(autoSpinStopButton, autoSpinStopButtonPortrait, isInteractable);
+            SetButtonInteractable(spinButton, spinButtonPortrait, isInteractable);
+            return;
         }
-        else
-        {
-            SetButtonActive(autoSpinStopButton, autoSpinStopButtonPortrait, false);
-            
-            if (isSpinningState)
-            {
-                SetButtonActive(spinButton, spinButtonPortrait, false);
-                SetButtonActive(stopButton, stopButtonPortrait, true);
-                SetButtonInteractable(stopButton, stopButtonPortrait, isInteractable);
-            }
-            else
-            {
-                SetButtonActive(stopButton, stopButtonPortrait, false);
-                SetButtonActive(spinButton, spinButtonPortrait, true);
-                SetButtonInteractable(spinButton, spinButtonPortrait, isInteractable);
-            }
-        }
+
+        SpinButtonMode mode;
+        if (gameManager != null && gameManager.isAutoPlaying) mode = SpinButtonMode.AutoplayStop;
+        else if (isSpinningState)                            mode = SpinButtonMode.Stop;
+        else                                                 mode = SpinButtonMode.Spin;
+
+        ApplySpinButtonState(mode, isInteractable);
     }
 
     #endregion
@@ -751,6 +735,11 @@ public class UIManager : MonoBehaviour
 
     public void OnSpinButtonHeld()
     {
+        // Spin mode only. The hold handler used to live on a SpinBtn object that was hidden in every
+        // other state, so visibility did this gating for free; the shared button is always visible,
+        // so holding on Stop / Take / Start / AutoplayStop has to be rejected explicitly.
+        if (spinButtonMode != SpinButtonMode.Spin) return;
+
         if (gameManager.currentState == GameState.Idle && !gameManager.isAutoPlaying)
         {
             AudioManager.Instance?.PlayButton();
@@ -821,8 +810,6 @@ public class UIManager : MonoBehaviour
 
     internal void OnAutoPlayStopped()
     {
-        SetButtonActive(autoSpinStopButton, autoSpinStopButtonPortrait, false);
-
         bool isRoundActive = gameManager.IsSpinning() || gameManager.lastResult != null;
 
         if (!isRoundActive && !gameManager.isInFreeSpins)
@@ -833,10 +820,9 @@ public class UIManager : MonoBehaviour
         }
         else if (isRoundActive)
         {
-            SetButtonActive(spinButton, spinButtonPortrait, false);
-            SetButtonActive(stopButton, stopButtonPortrait, false);
-            SetButtonActive(autoSpinStopButton, autoSpinStopButtonPortrait, true);
-            SetButtonInteractable(autoSpinStopButton, autoSpinStopButtonPortrait, false);
+            // The last autoplay round is still resolving. Hold the AutoplayStop face, greyed out,
+            // until it finishes — isAutoPlaying is already false, so the mode has to be forced.
+            ApplySpinButtonState(SpinButtonMode.AutoplayStop, interactable: false);
         }
     }
 
@@ -1135,49 +1121,78 @@ public class UIManager : MonoBehaviour
 
     #region Free Games Button Modes
 
-    // The spin button object is reused across the free-games round: it becomes Start before the
-    // first spin and Take on the closing summary. Only the sprite and the click routing change.
+    // Every state the one shared button can be in. Spin/Stop/AutoplayStop used to be separate
+    // GameObjects toggled by SetActive; the free-games and big-win states were sprite swaps on the
+    // spin object. All six are now modes on the same button.
+    //
+    // The two Takes share their art but stay distinct because they answer to different owners:
+    // FreeGamesTake calls back into FreeGameView, BigWinTake closes the popup.
     internal enum SpinButtonMode
     {
-        Normal,
+        Spin,
+        Stop,
+        AutoplayStop,
         FreeGamesStart,
-        FreeGamesTake
+        FreeGamesTake,
+        BigWinTake
     }
 
-    private SpinButtonMode spinButtonMode = SpinButtonMode.Normal;
+    private SpinButtonMode spinButtonMode = SpinButtonMode.Spin;
+
+    // True while a mode was set explicitly by SetSpinButtonMode rather than derived from the spin
+    // state. SetSpinStopButtonStates must not stomp on those — the free-games summary and the
+    // big-win popup both hold the button in a mode across events that would otherwise reset it.
+    private static bool IsExplicitMode(SpinButtonMode mode)
+    {
+        return mode == SpinButtonMode.FreeGamesStart
+            || mode == SpinButtonMode.FreeGamesTake
+            || mode == SpinButtonMode.BigWinTake;
+    }
 
     internal void SetSpinButtonMode(SpinButtonMode mode, bool interactable = true)
     {
-        spinButtonMode = mode;
-
-        switch (mode)
+        if (mode == SpinButtonMode.FreeGamesStart)
         {
-            case SpinButtonMode.FreeGamesStart:
-                SetSpinButtonSprite(spriteStartButton);
-                if (gameLogoObject) gameLogoObject.SetActive(false);
-                break;
-
-            case SpinButtonMode.FreeGamesTake:
-                SetSpinButtonSprite(spriteTakeButton);
-                break;
-
-            default:
-                SetSpinButtonSprite(spriteSpinButton);
-                if (gameLogoObject) gameLogoObject.SetActive(true);
-                UpdateWinDisplay(0);
-                break;
+            if (gameLogoObject) gameLogoObject.SetActive(false);
+        }
+        else if (mode == SpinButtonMode.Spin)
+        {
+            if (gameLogoObject) gameLogoObject.SetActive(true);
+            UpdateWinDisplay(0);
         }
 
-        // Always leaves the spin button object visible (stop hidden); `interactable` is what
-        // greys it out — used by the closing summary to hold Take inactive until the count-up ends.
-        SetSpinStopButtonStates(isSpinningState: false, isInteractable: interactable);
+        ApplySpinButtonState(mode, interactable);
     }
 
-    private void SetSpinButtonSprite(Sprite sprite)
+    /// <summary>
+    /// The single place the shared button's appearance, interactability and count text are set.
+    /// </summary>
+    private void ApplySpinButtonState(SpinButtonMode mode, bool interactable)
     {
-        if (sprite == null) return;
-        if (spinButton) { var img = spinButton.GetComponent<Image>(); if (img) img.sprite = sprite; }
-        if (spinButtonPortrait) { var img = spinButtonPortrait.GetComponent<Image>(); if (img) img.sprite = sprite; }
+        spinButtonMode = mode;
+
+        ButtonSpriteSet set;
+        switch (mode)
+        {
+            case SpinButtonMode.Stop:           set = stopSprites; break;
+            case SpinButtonMode.AutoplayStop:   set = autoplayStopSprites; break;
+            case SpinButtonMode.FreeGamesStart: set = startSprites; break;
+            case SpinButtonMode.FreeGamesTake:
+            case SpinButtonMode.BigWinTake:     set = takeSprites; break;
+            default:                            set = spinSprites; break;
+        }
+
+        // ApplyButtonSprites clears overrideSprite before writing. Without that the art stays
+        // whatever Unity's last Sprite Swap transition stamped on — which is why the Take button
+        // used to stay invisible until the player clicked it.
+        ApplyButtonSprites(spinButton, set);
+        ApplyButtonSprites(spinButtonPortrait, set);
+
+        SetButtonInteractable(spinButton, spinButtonPortrait, interactable);
+
+        // The count used to be a child of the autoplay-stop object and hid with it.
+        SetGameObjectActive(autoSpinRemainingObject, autoSpinRemainingObjectPortrait,
+                            mode == SpinButtonMode.AutoplayStop);
     }
 
     /// <summary>
@@ -1194,7 +1209,8 @@ public class UIManager : MonoBehaviour
         SetButtonInteractable(gameRulesOpenButton, gameRulesOpenButtonPortrait, enabled);
         SetButtonInteractable(guideOpenButton, guideOpenButtonPortrait, enabled);
         SetButtonInteractable(soundPanelOpenButton, soundPanelOpenButtonPortrait, enabled);
-        SetButtonInteractable(autoSpinStopButton, autoSpinStopButtonPortrait, enabled);
+        // The autoplay-stop button used to be locked here too. It no longer exists as its own
+        // object, and autoplay can't be running during free games anyway — StartFreeSpins stops it.
     }
 
     #endregion
@@ -1369,6 +1385,8 @@ public class UIManager : MonoBehaviour
 
     #endregion
 
+    
+
     #region Connection Popup Management
 
     private void OnExitButtonPressed()
@@ -1411,13 +1429,10 @@ public class UIManager : MonoBehaviour
             bigWinAmount.text = SpriteTextFormatter.ToSpriteDigits(FormatAmount(winAmount));
         }
 
-        SetSpinStopButtonStates(isSpinningState: false, isInteractable: false);
-
         // Take lets the player cut the popup short. It still auto-closes after uwpAutoCloseDelay if
         // they don't press it — without the button the ~5s presentation was unskippable, since the
         // big-win path disables every other control for its whole duration.
-        SetButtonActive(uwpTakeButton, uwpTakeButtonPortrait, true);
-        SetButtonInteractable(uwpTakeButton, uwpTakeButtonPortrait, true);
+        SetSpinButtonMode(SpinButtonMode.BigWinTake, interactable: true);
 
         universalWinPopup.SetActive(true);
         if (universalWinPopupRect)
@@ -1511,7 +1526,9 @@ public class UIManager : MonoBehaviour
         System.Action callback = universalWinPopupCallback;
         universalWinPopupCallback = null;
 
-        SetButtonInteractable(uwpTakeButton, uwpTakeButtonPortrait, false);
+        // Greyed immediately so the popup can't be taken twice while it collapses. The mode is
+        // released below, once the popup is actually gone.
+        SetButtonInteractable(spinButton, spinButtonPortrait, false);
 
         if (universalWinPopupRect)
         {
@@ -1537,7 +1554,9 @@ public class UIManager : MonoBehaviour
                 universalWinPopupRect.localScale = Vector3.one;
                 universalWinPopup.SetActive(false);
 
-                SetButtonActive(uwpTakeButton, uwpTakeButtonPortrait, false);
+                // Release the mode before re-enabling controls, or EnableControlsAfterWinAnimation's
+                // SetSpinStopButtonStates would see BigWinTake still held and only touch interactable.
+                spinButtonMode = SpinButtonMode.Spin;
                 isSpecialWinActive = false;
                 EnableControlsAfterWinAnimation();
 
@@ -1547,7 +1566,7 @@ public class UIManager : MonoBehaviour
         else
         {
             universalWinPopup.SetActive(false);
-            SetButtonActive(uwpTakeButton, uwpTakeButtonPortrait, false);
+            spinButtonMode = SpinButtonMode.Spin;
             isSpecialWinActive = false;
             EnableControlsAfterWinAnimation();
 

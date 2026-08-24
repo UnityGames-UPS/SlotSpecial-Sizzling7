@@ -1252,7 +1252,7 @@ public class UIManager : MonoBehaviour
     {
         if (!popupRect) return;
         popupRect.localScale = Vector3.zero;
-        popupRect.DOScale(1f, 0.3f).SetEase(Ease.OutBack);
+        popupRect.DOScale(1.4f, 0.3f).SetEase(Ease.OutBack);
     }
 
     private void AnimatePopupClose(RectTransform popupRect, System.Action onComplete)
@@ -1262,11 +1262,11 @@ public class UIManager : MonoBehaviour
         AudioManager.Instance?.PlayPopupClose();
 
         Sequence closeSeq = DOTween.Sequence();
-        closeSeq.Append(popupRect.DOScale(1.1f, 0.1f));
+        closeSeq.Append(popupRect.DOScale(1.5f, 0.1f));
         closeSeq.Append(popupRect.DOScale(0f, 0.2f).SetEase(Ease.InBack));
         closeSeq.OnComplete(() =>
         {
-            popupRect.localScale = Vector3.one;
+            popupRect.localScale = Vector3.one * 1.4f;
             onComplete?.Invoke();
         });
     }

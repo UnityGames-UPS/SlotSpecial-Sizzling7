@@ -144,6 +144,10 @@ public class AudioManager : MonoBehaviour
         }
     }
 
+    // MUSIC-BED loops only — it sets the source's volume from the music slider. Anything that
+    // should follow the sfx slider belongs in PlaySfxLoop below; using this for an effect leaves
+    // the source stuck at music volume, which is how the big-win and bonus-trigger sounds ended up
+    // ignoring the sfx setting.
     private void PlayLoop(AudioSource source, AudioClip clip)
     {
         if (source == null || clip == null) return;
@@ -205,26 +209,23 @@ public class AudioManager : MonoBehaviour
         PlayUISound(clipMaxBetReached);
     }
 
-    // 4. 3 USpin Win Line Loop
+    // 4. Bonus-trigger stinger — a one-shot, despite the CNY-era "Loop" in the name. It used to go
+    // through PlayLoop, which sets loop = true, and the matching Stop method had no callers — so the
+    // clip repeated for the rest of the session from the moment free games triggered. PlayUISound
+    // already null-guards and honours _sfxEnabled, so no guard is needed here.
     internal void Play3UspinWinLineLoop()
     {
-        if (!_sfxEnabled || clip3UspinWinLineLoop == null) return;
-        PlayLoop(uiSource, clip3UspinWinLineLoop);
-    }
-
-    internal void Stop3UspinWinLineLoop()
-    {
-        if (uiSource != null && uiSource.clip == clip3UspinWinLineLoop)
-        {
-            StopSource(uiSource);
-        }
+        PlayUISound(clip3UspinWinLineLoop);
     }
 
     // 5. Win Object BG (Play at Open)
     internal void PlayWinObjectBg()
     {
         if (!_sfxEnabled || clipWinObjectBg == null) return;
-        PlayLoop(uiSource, clipWinObjectBg);
+        // PlaySfxLoop, not PlayLoop: this is an effect, not a music bed. PlayLoop stamps the source
+        // with the *music* volume and StopSource never restores it, so every later UI sound on
+        // uiSource kept playing at music level until something touched a volume slider.
+        PlaySfxLoop(uiSource, clipWinObjectBg);
     }
 
     internal void StopWinObjectBg()

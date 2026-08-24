@@ -157,10 +157,18 @@ public class SlotView : MonoBehaviour
 
     #region Initialization
 
-    private void Start()
+    
+    private void Awake()
     {
         BuildSymbolSpriteArray();
         InitializeReels();
+    }
+    private void Start()
+    {
+        if (symbolSprites == null || symbolSprites.Length == 0)
+        {
+            BuildSymbolSpriteArray();
+        }
         DisableAllOverlays();
         SetupSymbolButtons();
     }
@@ -1570,7 +1578,7 @@ public class SlotView : MonoBehaviour
 
         if (visual.amount != null)
         {
-            visual.amount.text = SpriteTextFormatter.ToSpriteMoney(winAmount);
+            visual.amount.text = winAmount.ToString(SpriteTextFormatter.MoneyFormat);
             visual.amount.gameObject.SetActive(true);
         }
         else

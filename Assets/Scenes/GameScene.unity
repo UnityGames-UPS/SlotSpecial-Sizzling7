@@ -4665,10 +4665,10 @@ MonoBehaviour:
     m_ColorMultiplier: 1
     m_FadeDuration: 0.1
   m_SpriteState:
-    m_HighlightedSprite: {fileID: 6658678874227255573, guid: 27cdbfaafc3515f4a8fd41dfae35e817, type: 3}
-    m_PressedSprite: {fileID: 5971659525183896701, guid: 27cdbfaafc3515f4a8fd41dfae35e817, type: 3}
+    m_HighlightedSprite: {fileID: 8790169911022486234, guid: 779ef11d65822485a8f1c51b9daafa10, type: 3}
+    m_PressedSprite: {fileID: -4360218772831896567, guid: 779ef11d65822485a8f1c51b9daafa10, type: 3}
     m_SelectedSprite: {fileID: 0}
-    m_DisabledSprite: {fileID: 5962252680971704844, guid: 27cdbfaafc3515f4a8fd41dfae35e817, type: 3}
+    m_DisabledSprite: {fileID: -6956162973071420567, guid: 779ef11d65822485a8f1c51b9daafa10, type: 3}
   m_AnimationTriggers:
     m_NormalTrigger: Normal
     m_HighlightedTrigger: Highlighted
@@ -5964,7 +5964,7 @@ MonoBehaviour:
   m_text: Okay
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: 1456e2ad4147c6c458c07307356d4f77, type: 2}
-  m_sharedMaterial: {fileID: 2954594708302655486, guid: 7ee90cf4e59804d37b8e307570aac85a, type: 2}
+  m_sharedMaterial: {fileID: 3005885927822680402, guid: 1456e2ad4147c6c458c07307356d4f77, type: 2}
   m_fontSharedMaterials: []
   m_fontMaterial: {fileID: 0}
   m_fontMaterials: []
@@ -6030,7 +6030,7 @@ MonoBehaviour:
   m_margin: {x: 0, y: 0, z: 0, w: 0}
   m_isUsingLegacyAnimationComponent: 0
   m_isVolumetricText: 0
-  m_hasFontAssetChanged: 1
+  m_hasFontAssetChanged: 0
   m_baseMaterial: {fileID: 0}
   m_maskOffset: {x: 0, y: 0, z: 0, w: 0}
 --- !u!222 &236575424
@@ -9850,7 +9850,7 @@ MonoBehaviour:
   m_text: Disconnected
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: 1456e2ad4147c6c458c07307356d4f77, type: 2}
-  m_sharedMaterial: {fileID: 2954594708302655486, guid: 7ee90cf4e59804d37b8e307570aac85a, type: 2}
+  m_sharedMaterial: {fileID: 3005885927822680402, guid: 1456e2ad4147c6c458c07307356d4f77, type: 2}
   m_fontSharedMaterials: []
   m_fontMaterial: {fileID: 0}
   m_fontMaterials: []
@@ -9916,7 +9916,7 @@ MonoBehaviour:
   m_margin: {x: 0, y: 0, z: 0, w: 0}
   m_isUsingLegacyAnimationComponent: 0
   m_isVolumetricText: 0
-  m_hasFontAssetChanged: 1
+  m_hasFontAssetChanged: 0
   m_baseMaterial: {fileID: 0}
   m_maskOffset: {x: 0, y: 0, z: 0, w: 0}
 --- !u!222 &408686784
@@ -17243,7 +17243,7 @@ MonoBehaviour:
     bottomLeft: {r: 1, g: 1, b: 1, a: 1}
     bottomRight: {r: 1, g: 1, b: 1, a: 1}
   m_fontColorGradientPreset: {fileID: 0}
-  m_spriteAsset: {fileID: 11400000, guid: cddacacc038fbe44ebf078c7ab83ed9f, type: 2}
+  m_spriteAsset: {fileID: 11400000, guid: 90f529c1ef98359438d8a80f3c7f705b, type: 2}
   m_tintAllSprites: 0
   m_StyleSheet: {fileID: 0}
   m_TextStyleHashCode: -1183493901
@@ -17261,7 +17261,7 @@ MonoBehaviour:
   m_HorizontalAlignment: 2
   m_VerticalAlignment: 512
   m_textAlignment: 65535
-  m_characterSpacing: 0
+  m_characterSpacing: -12
   m_characterHorizontalScale: 1
   m_wordSpacing: 0
   m_lineSpacing: 0
@@ -22908,27 +22908,27 @@ MonoBehaviour:
     normal: {fileID: -4776695513641400445, guid: 779ef11d65822485a8f1c51b9daafa10, type: 3}
     highlighted: {fileID: 8790169911022486234, guid: 779ef11d65822485a8f1c51b9daafa10, type: 3}
     pressed: {fileID: -4360218772831896567, guid: 779ef11d65822485a8f1c51b9daafa10, type: 3}
-    disabled: {fileID: -6956162973071420567, guid: 779ef11d65822485a8f1c51b9daafa10, type: 3}
+    disabled: {fileID: -4360218772831896567, guid: 779ef11d65822485a8f1c51b9daafa10, type: 3}
   stopSprites:
     normal: {fileID: 2919230637174770617, guid: 779ef11d65822485a8f1c51b9daafa10, type: 3}
     highlighted: {fileID: 3925575654513283634, guid: 779ef11d65822485a8f1c51b9daafa10, type: 3}
     pressed: {fileID: 3827616751188195482, guid: 779ef11d65822485a8f1c51b9daafa10, type: 3}
-    disabled: {fileID: 7370186040543628352, guid: 779ef11d65822485a8f1c51b9daafa10, type: 3}
+    disabled: {fileID: 3827616751188195482, guid: 779ef11d65822485a8f1c51b9daafa10, type: 3}
   takeSprites:
     normal: {fileID: 4454114479153352961, guid: e84e46a7c650c481ab1aec9d330b7986, type: 3}
     highlighted: {fileID: 6614072484174839777, guid: e84e46a7c650c481ab1aec9d330b7986, type: 3}
     pressed: {fileID: -8391491952814921746, guid: e84e46a7c650c481ab1aec9d330b7986, type: 3}
-    disabled: {fileID: 6518875402845892348, guid: e84e46a7c650c481ab1aec9d330b7986, type: 3}
+    disabled: {fileID: -8391491952814921746, guid: e84e46a7c650c481ab1aec9d330b7986, type: 3}
   startSprites:
     normal: {fileID: 3217078796435815372, guid: 6bfe187b9576b4245970995df073f839, type: 3}
     highlighted: {fileID: 3682428651778675641, guid: 6bfe187b9576b4245970995df073f839, type: 3}
     pressed: {fileID: 5971659525183896701, guid: 27cdbfaafc3515f4a8fd41dfae35e817, type: 3}
-    disabled: {fileID: 5962252680971704844, guid: 27cdbfaafc3515f4a8fd41dfae35e817, type: 3}
+    disabled: {fileID: 5971659525183896701, guid: 27cdbfaafc3515f4a8fd41dfae35e817, type: 3}
   autoplayStopSprites:
     normal: {fileID: -7118473965854159705, guid: 7e89c04034f3b4163a0ba0074b08f2d4, type: 3}
     highlighted: {fileID: -368946005539395992, guid: 7e89c04034f3b4163a0ba0074b08f2d4, type: 3}
     pressed: {fileID: -170567246334709981, guid: 7e89c04034f3b4163a0ba0074b08f2d4, type: 3}
-    disabled: {fileID: 6272496863660383912, guid: 7e89c04034f3b4163a0ba0074b08f2d4, type: 3}
+    disabled: {fileID: -170567246334709981, guid: 7e89c04034f3b4163a0ba0074b08f2d4, type: 3}
   autoSpinRemainingObject: {fileID: 1152132544}
   autoSpinRemainingText: {fileID: 1152132546}
   autoSpinRemainingObjectPortrait: {fileID: 41941299}
@@ -22969,17 +22969,17 @@ MonoBehaviour:
     normal: {fileID: 402412703585123401, guid: fb2a1d249fffc4dce8e0d145cf3a1e94, type: 3}
     highlighted: {fileID: 5115189519518036634, guid: fb2a1d249fffc4dce8e0d145cf3a1e94, type: 3}
     pressed: {fileID: -374643874582523379, guid: fb2a1d249fffc4dce8e0d145cf3a1e94, type: 3}
-    disabled: {fileID: 3547829303569782138, guid: fb2a1d249fffc4dce8e0d145cf3a1e94, type: 3}
+    disabled: {fileID: -374643874582523379, guid: fb2a1d249fffc4dce8e0d145cf3a1e94, type: 3}
   speedTurboSprites:
     normal: {fileID: 4154264110347673734, guid: fb2a1d249fffc4dce8e0d145cf3a1e94, type: 3}
     highlighted: {fileID: 3223397810352824357, guid: fb2a1d249fffc4dce8e0d145cf3a1e94, type: 3}
     pressed: {fileID: -3719827349598635992, guid: fb2a1d249fffc4dce8e0d145cf3a1e94, type: 3}
-    disabled: {fileID: 6661898670051671186, guid: fb2a1d249fffc4dce8e0d145cf3a1e94, type: 3}
+    disabled: {fileID: -3719827349598635992, guid: fb2a1d249fffc4dce8e0d145cf3a1e94, type: 3}
   speedQuickSpinSprites:
     normal: {fileID: 2550442366711503964, guid: fb2a1d249fffc4dce8e0d145cf3a1e94, type: 3}
     highlighted: {fileID: 2344296568406450133, guid: fb2a1d249fffc4dce8e0d145cf3a1e94, type: 3}
     pressed: {fileID: 5645987487349935546, guid: fb2a1d249fffc4dce8e0d145cf3a1e94, type: 3}
-    disabled: {fileID: 5661434919430616417, guid: fb2a1d249fffc4dce8e0d145cf3a1e94, type: 3}
+    disabled: {fileID: 5645987487349935546, guid: fb2a1d249fffc4dce8e0d145cf3a1e94, type: 3}
   soundPanel: {fileID: 1633063686}
   soundPanelRect: {fileID: 2037233597}
   musicSlider: {fileID: 111747927}
@@ -23106,7 +23106,7 @@ MonoBehaviour:
   freeSpinCountContainer: {fileID: 995389093}
   remainingFreeSpinsText: {fileID: 434577407}
   slotObjectImage: {fileID: 1153154295}
-  slotObjectNormalSprite: {fileID: -8893338700309521438, guid: ca2a84ff815f94648a0158ac8381cecf, type: 3}
+  slotObjectNormalSprite: {fileID: 1494433214038544963, guid: 298d99d132c2248449929544723c3116, type: 3}
   slotObjectFreeGamesSprite: {fileID: -7219618496982878205, guid: 8c964b0bc2341a74f9d448e5e498e6cb, type: 3}
   reelBackgroundImage: {fileID: 68893561}
   reelBackgroundNormalSprite: {fileID: -4237907161795025632, guid: 24d72ab98123010469ad9dfd5812a50b, type: 3}
@@ -44591,7 +44591,7 @@ MonoBehaviour:
   m_text: 1/3
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: 1456e2ad4147c6c458c07307356d4f77, type: 2}
-  m_sharedMaterial: {fileID: 2954594708302655486, guid: 7ee90cf4e59804d37b8e307570aac85a, type: 2}
+  m_sharedMaterial: {fileID: 3005885927822680402, guid: 1456e2ad4147c6c458c07307356d4f77, type: 2}
   m_fontSharedMaterials: []
   m_fontMaterial: {fileID: 0}
   m_fontMaterials: []
@@ -44657,7 +44657,7 @@ MonoBehaviour:
   m_margin: {x: 0, y: 0, z: 0, w: 0}
   m_isUsingLegacyAnimationComponent: 0
   m_isVolumetricText: 0
-  m_hasFontAssetChanged: 1
+  m_hasFontAssetChanged: 0
   m_baseMaterial: {fileID: 0}
   m_maskOffset: {x: 0, y: 0, z: 0, w: 0}
 --- !u!222 &1783675454

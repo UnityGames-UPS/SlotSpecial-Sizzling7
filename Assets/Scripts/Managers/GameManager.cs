@@ -45,7 +45,7 @@ public class GameManager : MonoBehaviour
     // Round-level free-games state. The server sends only per-spin facts (remaining count, this
     // spin's win), so the running totals are accumulated here rather than read off a response.
     internal int freeSpinsTotalAwarded;   // grows when a retrigger awards more spins mid-round
-    internal double freeSpinsRoundWin;    // sum of every free spin's win this round
+    internal double freeSpinsRoundWin;    // the round's total win, from features.freeSpinTotalWin
     internal string currentBoxId;         // presentation only
     internal double? currentMultiplier;   // last value the server sent; kept when a spin omits it
 
@@ -447,7 +447,15 @@ public class GameManager : MonoBehaviour
         if (isInFreeSpins)
         {
             freeSpinsRemaining = result.serverSpinsRemaining;
-            freeSpinsRoundWin += result.winAmount;
+
+            // Server-authoritative since the backend started sending features.freeSpinTotalWin.
+            // This used to be `+= result.winAmount`, which drifted permanently if a response was
+            // missed or the socket reconnected mid-round. An absent value leaves the previous
+            // figure alone rather than blanking a round that has already paid.
+            if (result.serverFreeSpinTotalWin.HasValue)
+            {
+                freeSpinsRoundWin = result.serverFreeSpinTotalWin.Value;
+            }
 
             // Absent on some spins — keep the last value rather than blanking the panel.
             if (result.freeSpinsMultiplier.HasValue)
@@ -600,6 +608,11 @@ public class GameManager : MonoBehaviour
         wasAutoPlayingBeforeFreeSpins = false;
 
         uiManager.OnAutoPlayStopped();
+
+        // Autoplay skips the per-line cycle while it runs, so the round it just finished is parked
+        // after Phase 1. Now that no further spin is coming, present it the way a manual spin would.
+        // Covers both endings: the last scheduled round, and the player stopping part-way.
+        if (!isInFreeSpins && slotView != null) slotView.PlayWinLineCycle();
     }
 
     internal bool ShouldResumeAutoPlay()
@@ -717,6 +730,12 @@ public class GameManager : MonoBehaviour
         isInFreeSpins = false;
         freeSpinsRemaining = 0;
         AudioManager.Instance?.PlayMainBg();
+
+        // Free spins skip the per-line cycle too, so the final spin is parked after Phase 1. Start
+        // it here rather than after the summary: it runs on the reels underneath while the summary
+        // plays on top, so the player isn't kept waiting and still sees it once they take the win.
+        // Must come after isInFreeSpins is cleared — PlayWinLineCycle is a no-op during free spins.
+        if (slotView != null) slotView.PlayWinLineCycle();
 
         // The view shows the closing summary and waits on the Take button before calling back.
         if (freeGameView != null)

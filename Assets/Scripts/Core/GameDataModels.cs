@@ -218,6 +218,9 @@ public class ServerResultFeatures
     public bool freeGamesTriggered;
     public int awardedSpins;
     public string boxId;                            // Which mystery box the server picked ("red"/"yellow"/"blue"/"green")
+    // Running total for the free-games round. Nullable so an absent field can't be read as a real
+    // 0 and blank out a round that has already paid — the same trap freeSpinsMultiplier avoids.
+    public double? freeSpinTotalWin;
 }
 
 // The bonus/scatter symbol landing that triggers free games. JSON key is "bonus".
@@ -370,13 +373,15 @@ public class SpinResult
     public OverlayScatterData overlayScatterData; // Keep for safety/UI compilation
     public Dictionary<string, int> stickyWilds;  // Keep for safety/UI compilation
 
-    // Per-response free spin facts. Round-level aggregates (spins used, total awarded, total
-    // round win) are deliberately NOT here — the wire format doesn't carry them, so GameManager
-    // accumulates those across the round instead of the model inventing values.
+    // Per-response free spin facts. Spins used and total awarded are still GameManager's to track —
+    // the wire format doesn't carry them — but the round's total win now comes from the server.
     public int serverSpinsRemaining;
     public bool isRoundOver;
     // Informational only — the server has already applied this to winAmount. Never multiply by it.
     public double? freeSpinsMultiplier;
+    // The round's running total, server-authoritative. Replaced client-side accumulation, which
+    // drifted whenever a response was missed or the socket reconnected mid-round.
+    public double? serverFreeSpinTotalWin;
 
     // Dormant — CNY-era wheel/moneybag features, never populated from real server data
     public USpinResultData uSpinData;
@@ -627,6 +632,7 @@ public static class InitDataConverter
             // would look like a round ending.
             isRoundOver = serverResponse.payload.isFreeSpin && serverResponse.payload.freeSpinsRemaining <= 0,
             freeSpinsMultiplier = serverResponse.payload.freeSpinsMultiplier,
+            serverFreeSpinTotalWin = features?.freeSpinTotalWin,
 
             uSpinData = null,
             moneyBagData = null

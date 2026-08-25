@@ -126,6 +126,11 @@ public class SlotView : MonoBehaviour
     private List<Tween> winTweens = new List<Tween>();
     private Coroutine winAnimationCoroutine;
 
+    // The lines from the spin that just landed, kept so the controller can start the Phase 2 cycle
+    // after the fact — autoplay and free spins skip it while they run, and only the controller knows
+    // when the round is actually over.
+    private List<WinLine> lastWinLines;
+
     private float lastSpinStartTime;
     private Coroutine preloadResultCoroutine;
 
@@ -1087,12 +1092,33 @@ public class SlotView : MonoBehaviour
     {
         if (winLines == null || winLines.Count == 0)
         {
+            lastWinLines = null;
             onComplete?.Invoke();
             return;
         }
 
+        lastWinLines = winLines;
+
         KillWinTweens();
         winAnimationCoroutine = StartCoroutine(PlayTwoPhaseWinLines(winLines, onComplete));
+    }
+
+    /// <summary>
+    /// Starts the Phase 2 line-by-line cycle for the spin that just landed. Autoplay and free spins
+    /// skip Phase 2 while they're running — a round ends with the presentation parked after Phase 1
+    /// — so the controller calls this once the round is genuinely over. Loops until the next
+    /// StartSpin kills it, same as an ordinary manual spin.
+    /// </summary>
+    internal void PlayWinLineCycle()
+    {
+        if (lastWinLines == null || lastWinLines.Count == 0) return;
+
+        // The player can stop autoplay mid-presentation, in which case Phase 2 was never skipped and
+        // is already running. Restarting would double up the coroutine and strobe the lines.
+        if (winAnimationCoroutine != null) return;
+
+        KillWinTweens();
+        winAnimationCoroutine = StartCoroutine(PlayWinLineCycleRoutine(lastWinLines));
     }
 
     private IEnumerator PlayTwoPhaseWinLines(List<WinLine> winLines, System.Action onComplete)
@@ -1151,12 +1177,28 @@ public class SlotView : MonoBehaviour
         bool skipPhase2 = (gameManager != null && (gameManager.isInFreeSpins || gameManager.isAutoPlaying)) || hasSpecialFeature;
         if (skipPhase2)
         {
+            // Take the presentation down on the way out. Mid-round this is invisible — the next
+            // spin's KillAllTweens would have cleared it — but on the last autoplay spin, and at the
+            // end of a free-games round, there is no next spin and the dim used to sit there until
+            // the player span again. The controller restarts the cycle via PlayWinLineCycle when the
+            // round is genuinely over; a special-feature spin is left alone, since AnimateAllScatters
+            // does its own KillWinTweens.
+            winAnimationCoroutine = null;
+            if (!hasSpecialFeature) KillWinTweens();
             yield break;
         }
 
-        // ==========================================
-        // PHASE 2: Individual Win Line presentation loop
-        // ==========================================
+        yield return PlayWinLineCycleRoutine(winLines);
+    }
+
+    // ==========================================
+    // PHASE 2: Individual Win Line presentation loop
+    // ==========================================
+    // Split out of PlayTwoPhaseWinLines so the controller can start it on its own once an autoplay
+    // or free-games round ends. Loops until something kills the coroutine — normally the next
+    // StartSpin.
+    private IEnumerator PlayWinLineCycleRoutine(List<WinLine> winLines)
+    {
         while (true)
         {
             foreach (var winLine in winLines)

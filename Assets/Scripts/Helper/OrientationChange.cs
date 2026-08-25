@@ -185,7 +185,11 @@ public class OrientationChange : MonoBehaviour
     {
         if (Screen.width != lastWidth || Screen.height != lastHeight)
         {
-            ApplyMatch(Screen.width, Screen.height);
+            // Through SwitchDisplay, not ApplyMatch directly: SwitchDisplay stops any in-flight
+            // rotation coroutine and restarts the waitForRotation timer, so a resize drag settles
+            // into one ApplyMatch instead of one per frame (which re-killed both tweens, re-logged,
+            // and re-fanned OnOrientationChanged to OCController on every frame of the drag).
+            SwitchDisplay(Screen.width + "," + Screen.height);
         }
 
 #if UNITY_EDITOR

@@ -78,6 +78,7 @@ public class AudioManager : MonoBehaviour
 
     internal void SetMusicEnabled(bool on)
     {
+        ClearForceMuteFromUserAction();
         _musicEnabled = on;
         PlayerPrefs.SetInt(PrefKeyMusic, on ? 1 : 0);
         PlayerPrefs.Save();
@@ -86,6 +87,7 @@ public class AudioManager : MonoBehaviour
 
     internal void SetSfxEnabled(bool on)
     {
+        ClearForceMuteFromUserAction();
         _sfxEnabled = on;
         PlayerPrefs.SetInt(PrefKeysfx, on ? 1 : 0);
         PlayerPrefs.Save();
@@ -94,6 +96,7 @@ public class AudioManager : MonoBehaviour
 
     internal void SetMusicVolume(float volume)
     {
+        ClearForceMuteFromUserAction();
         _musicVolume = Mathf.Clamp01(volume);
         PlayerPrefs.SetFloat(PrefKeyMusicVol, _musicVolume);
         PlayerPrefs.Save();
@@ -102,6 +105,7 @@ public class AudioManager : MonoBehaviour
 
     internal void SetSfxVolume(float volume)
     {
+        ClearForceMuteFromUserAction();
         _sfxVolume = Mathf.Clamp01(volume);
         PlayerPrefs.SetFloat(PrefKeySfxVol, _sfxVolume);
         PlayerPrefs.Save();
@@ -354,6 +358,17 @@ public class AudioManager : MonoBehaviour
     internal void PlayCardReveal()       => PlayUISound(clipCardReveal);
 
     private bool isForceMuted = false;
+
+    // An explicit user audio interaction proves the game has real interactive focus, so it must win
+    // over a stale forced-mute. A WebView can fire a DOM blur (native overlay, bridge event) whose
+    // matching focus never arrives, which would otherwise leave AudioListener.volume pinned at 0 and
+    // make both sliders silently do nothing until an unrelated later focus cycle happened to clear it.
+    private void ClearForceMuteFromUserAction()
+    {
+        if (!isForceMuted) return;
+        isForceMuted = false;
+        AudioListener.volume = 1f;
+    }
 
     internal void SetMuteAll(bool forceMute)
     {

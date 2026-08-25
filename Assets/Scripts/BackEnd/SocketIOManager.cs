@@ -255,7 +255,7 @@ public class SocketIOManager : MonoBehaviour
     {
         Debug.LogError($"[SocketIO] Error: {err.message}");
 
-        if (!gameManager.isInitialized)
+        if (gameManager != null && !gameManager.isInitialized)
         {
             gameManager.initializationFailed = true;
         }

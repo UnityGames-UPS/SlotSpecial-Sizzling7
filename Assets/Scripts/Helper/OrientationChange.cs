@@ -21,6 +21,9 @@ public class OrientationChange : MonoBehaviour
     [SerializeField] private float transitionDuration = 0.2f;
     [SerializeField] private float waitForRotation = 0.2f;
 
+    [Header("Orientation Settings")]
+    [SerializeField] private bool enablePortrait = true;
+
     [Header("Device Detection Settings")]
     [SerializeField] private string androidKeyword = "MB";
     [SerializeField] private string iphoneKeyword = "IP";
@@ -44,6 +47,23 @@ public class OrientationChange : MonoBehaviour
     public OrientationMode CurrentMode => currentMode;
     public bool IsLandscape => isLandscape;
     public bool IsMobile => IsMobileDevice();
+    public bool EnablePortrait
+    {
+        get => enablePortrait;
+        set
+        {
+            enablePortrait = value;
+            ApplyMatch(lastWidth > 0 ? lastWidth : Screen.width, lastHeight > 0 ? lastHeight : Screen.height);
+        }
+    }
+
+    private void OnValidate()
+    {
+        if (Application.isPlaying)
+        {
+            ApplyMatch(lastWidth > 0 ? lastWidth : Screen.width, lastHeight > 0 ? lastHeight : Screen.height);
+        }
+    }
 
     private void Awake()
     {
@@ -127,7 +147,7 @@ public class OrientationChange : MonoBehaviour
         {
             currentMode = OrientationMode.Landscape;
         }
-        else if (isMobile)
+        else if (enablePortrait && isMobile)
         {
             currentMode = OrientationMode.MobilePortrait;
         }
@@ -136,7 +156,6 @@ public class OrientationChange : MonoBehaviour
             currentMode = OrientationMode.DesktopPortrait;
         }
 
-        // Apply Rotation: DesktopPortrait gets -90 degrees rotation, MobilePortrait & Landscape get 0 degrees.
         Quaternion targetRotation = (currentMode == OrientationMode.DesktopPortrait) ? Quaternion.Euler(0, 0, -90) : Quaternion.identity;
         if (UIWrapper != null)
         {
@@ -144,31 +163,12 @@ public class OrientationChange : MonoBehaviour
             rotationTween = UIWrapper.DOLocalRotateQuaternion(targetRotation, transitionDuration).SetEase(Ease.OutCubic);
         }
 
-        // Calculate CanvasScaler Match Width/Height
         if (CanvasScaler != null)
         {
             Vector2 refRes = (currentMode == OrientationMode.MobilePortrait) ? new Vector2(1080f, 1920f) : new Vector2(1920f, 1080f);
             CanvasScaler.referenceResolution = refRes;
 
-            float refW = refRes.x;
-            float refH = refRes.y;
-
-            float scaleW, scaleH;
-            if (currentMode == OrientationMode.DesktopPortrait)
-            {
-                // In DesktopPortrait, UIWrapper is rotated -90 degrees.
-                // Canvas width (1920) corresponds to screen height.
-                // Canvas height (1080) corresponds to screen width.
-                scaleW = (float)height / refW;
-                scaleH = (float)width / refH;
-            }
-            else
-            {
-                scaleW = (float)width / refW;
-                scaleH = (float)height / refH;
-            }
-
-            float targetMatch = (scaleW <= scaleH) ? 0f : 1f;
+            float targetMatch = CalculateTargetMatch(currentMode, width, height);
 
             if (matchTween != null && matchTween.IsActive()) matchTween.Kill();
             matchTween = DOTween.To(() => CanvasScaler.matchWidthOrHeight, x => CanvasScaler.matchWidthOrHeight = x, targetMatch, transitionDuration).SetEase(Ease.InOutQuad);
@@ -176,20 +176,44 @@ public class OrientationChange : MonoBehaviour
 
         Debug.Log($"[OrientationChange] Dimensions: {width}x{height}, Mode: {currentMode}, isLandscape: {isLandscape}, isMobile: {isMobile}");
 
-        // Notify Listeners (including OCController)
         OnOrientationChanged?.Invoke(currentMode, width, height);
         OnOrientationChangedInstance?.Invoke(currentMode, width, height);
+    }
+
+    private float CalculateTargetMatch(OrientationMode mode, int width, int height)
+    {
+        if (mode == OrientationMode.Landscape)
+        {
+            float scaleW = (float)width / 1920f;
+            float scaleH = (float)height / 1080f;
+            return (scaleW <= scaleH) ? 0f : 1f;
+        }
+        else if (mode == OrientationMode.MobilePortrait)
+        {
+            float scaleW = (float)width / 1080f;
+            float scaleH = (float)height / 1920f;
+            return (scaleW <= scaleH) ? 0f : 1f;
+        }
+        else
+        {
+            float targetScale = Mathf.Min((float)width / 1080f, (float)height / 1920f);
+            float logWidth = Mathf.Log((float)width / 1920f, 2f);
+            float logHeight = Mathf.Log((float)height / 1080f, 2f);
+
+            float diff = logHeight - logWidth;
+            if (Mathf.Abs(diff) < 0.0001f) return 0.5f;
+
+            float logTarget = Mathf.Log(targetScale, 2f);
+            float match = (logTarget - logWidth) / diff;
+            return Mathf.Clamp01(match);
+        }
     }
 
     private void Update()
     {
         if (Screen.width != lastWidth || Screen.height != lastHeight)
         {
-            // Through SwitchDisplay, not ApplyMatch directly: SwitchDisplay stops any in-flight
-            // rotation coroutine and restarts the waitForRotation timer, so a resize drag settles
-            // into one ApplyMatch instead of one per frame (which re-killed both tweens, re-logged,
-            // and re-fanned OnOrientationChanged to OCController on every frame of the drag).
-            SwitchDisplay(Screen.width + "," + Screen.height);
+            ApplyMatch(Screen.width, Screen.height);
         }
 
 #if UNITY_EDITOR

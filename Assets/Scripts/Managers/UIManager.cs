@@ -13,6 +13,8 @@ public class UIManager : MonoBehaviour
     [SerializeField] private PopupManager popupManager;
     [SerializeField] private JSFunctCalls jsFunctCalls;
     [SerializeField] private FreeGameView freeGameView;
+    [Tooltip("Optional. Resolved lazily by GetOrientationChange() when left empty.")]
+    [SerializeField] private OrientationChange orientationChange;
 
     [Header("Loading & Intro")]
     [SerializeField] private GameObject gameScreen;
@@ -177,6 +179,24 @@ public class UIManager : MonoBehaviour
     [SerializeField] private TMP_Text minorJackpotTextPortrait;
     [SerializeField] private TMP_Text miniJackpotTextPortrait;
 
+    [Header("Platform Jackpot Animation - Portrait")]
+    [Tooltip("The four jackpot tier parents inside the portrait Top prefab. Optional — left empty, " +
+             "each tier falls back to its portrait text's parent, which is the same transform.")]
+    [SerializeField] private RectTransform grandJackpotPortraitParent;
+    [SerializeField] private RectTransform majorJackpotPortraitParent;
+    [SerializeField] private RectTransform minorJackpotPortraitParent;
+    [SerializeField] private RectTransform miniJackpotPortraitParent;
+    [SerializeField] private bool enableJackpotPortraitLevitation = true;
+    [SerializeField] private float jackpotLevitateHeight = 10f;
+    [SerializeField] private float jackpotLevitateDuration = 1.4f;
+    [SerializeField] private float jackpotStaggerDelay = 0.15f;
+
+    // Each parent's resting position, captured the first time it levitates so the loop can always
+    // be returned to exactly where the layout put it.
+    private readonly Dictionary<Transform, Vector3> jackpotInitialLocalPositions = new Dictionary<Transform, Vector3>();
+    private readonly List<Tween> jackpotPortraitTweens = new List<Tween>();
+    private bool isJackpotLevitationRunning;
+
     [Header("Expand-Shrink Control (Sprite-Swapped Toggle)")]
     [SerializeField] private Button expandShrinkButton;
     [SerializeField] private Button expandShrinkButtonPortrait;
@@ -226,7 +246,27 @@ public class UIManager : MonoBehaviour
         }
     }
 
+    private void OnEnable()
+    {
+        OrientationChange.OnOrientationChanged += HandleOrientationChanged;
+        var oc = GetOrientationChange();
+        if (oc != null) oc.OnOrientationChangedInstance += HandleOrientationChanged;
+    }
 
+    private void OnDisable()
+    {
+        OrientationChange.OnOrientationChanged -= HandleOrientationChanged;
+        var oc = GetOrientationChange();
+        if (oc != null) oc.OnOrientationChangedInstance -= HandleOrientationChanged;
+
+        // Looping tweens outlive this component otherwise — nothing else would ever kill them.
+        StopJackpotPortraitLevitation();
+    }
+
+    private void HandleOrientationChanged(OrientationChange.OrientationMode mode, int width, int height)
+    {
+        UpdateJackpotPortraitLevitation(mode);
+    }
 
     public void OnFocusChanged(string value)
     {
@@ -253,6 +293,10 @@ public class UIManager : MonoBehaviour
         InitializeUI();
         StartCoroutine(WaitForInitialization());
         RegisterFullscreenListener();
+
+        // OnEnable's subscription already catches OrientationChange's own Start-time ApplyMatch, but
+        // this covers a UIManager that is enabled after that event has already fired.
+        UpdateJackpotPortraitLevitationFromCurrentOrientation();
     }
 
     private void InitializeUI()
@@ -1372,15 +1416,134 @@ public class UIManager : MonoBehaviour
         SetButtonInteractable(betMinusButton, betMinusButtonPortrait, enabled);
     }
 
+    private OrientationChange GetOrientationChange()
+    {
+        if (orientationChange != null) return orientationChange;
+        orientationChange = Object.FindFirstObjectByType<OrientationChange>();
+        return orientationChange;
+    }
+
     #endregion
 
     #region Cleanup
 
     private void OnDestroy()
     {
+        // KillAll below already stops these; this is for the snap back to the resting position.
+        StopJackpotPortraitLevitation();
         if (balanceTween != null) balanceTween.Kill();
         if (winTween != null) winTween.Kill();
         DOTween.KillAll();
+    }
+
+    #endregion
+
+    #region Jackpot Portrait Levitation
+
+    private void UpdateJackpotPortraitLevitationFromCurrentOrientation()
+    {
+        var oc = GetOrientationChange();
+        if (oc != null) UpdateJackpotPortraitLevitation(oc.CurrentMode);
+    }
+
+    // MobilePortrait only — that is the one mode where OCController shows portraitPanelObject. With
+    // OrientationChange.enablePortrait off, portrait resolves to DesktopPortrait instead, where
+    // these objects are switched off and animating them would be wasted work.
+    private void UpdateJackpotPortraitLevitation(OrientationChange.OrientationMode mode)
+    {
+        bool shouldLevitate = (mode == OrientationChange.OrientationMode.MobilePortrait);
+
+        // OrientationChange.Update() calls ApplyMatch directly, so a desktop resize drag fires this
+        // once per frame. Restarting on every fire would replay the stagger delays and nothing would
+        // ever visibly float. A failed start leaves the flag false, so later events still retry.
+        if (shouldLevitate == isJackpotLevitationRunning) return;
+
+        if (shouldLevitate) StartJackpotPortraitLevitation();
+        else                StopJackpotPortraitLevitation();
+    }
+
+    // The explicit parents are optional: every portrait jackpot text sits directly under the tier
+    // parent that levitates, so the fallback resolves to the same transform the fields would hold.
+    private List<Transform> GetJackpotPortraitTransforms()
+    {
+        List<Transform> list = new List<Transform>();
+
+        Transform grandTr = grandJackpotPortraitParent != null ? grandJackpotPortraitParent : (grandJackpotTextPortrait != null ? grandJackpotTextPortrait.transform.parent : null);
+        Transform majorTr = majorJackpotPortraitParent != null ? majorJackpotPortraitParent : (majorJackpotTextPortrait != null ? majorJackpotTextPortrait.transform.parent : null);
+        Transform minorTr = minorJackpotPortraitParent != null ? minorJackpotPortraitParent : (minorJackpotTextPortrait != null ? minorJackpotTextPortrait.transform.parent : null);
+        Transform miniTr  = miniJackpotPortraitParent  != null ? miniJackpotPortraitParent  : (miniJackpotTextPortrait  != null ? miniJackpotTextPortrait.transform.parent  : null);
+
+        if (grandTr != null) list.Add(grandTr);
+        if (majorTr != null) list.Add(majorTr);
+        if (minorTr != null) list.Add(minorTr);
+        if (miniTr != null) list.Add(miniTr);
+
+        return list;
+    }
+
+    private void StartJackpotPortraitLevitation()
+    {
+        if (!enableJackpotPortraitLevitation) return;
+
+        // Clears any previous run first, so repeated portrait entries can't stack tweens on the
+        // same objects.
+        StopJackpotPortraitLevitation();
+
+        List<Transform> portraitJackpots = GetJackpotPortraitTransforms();
+        if (portraitJackpots.Count == 0) return;
+
+        for (int i = 0; i < portraitJackpots.Count; i++)
+        {
+            Transform tr = portraitJackpots[i];
+
+            // Captured once and never overwritten: re-reading it on a later run would bake in
+            // whatever mid-float position the object happened to be at.
+            if (!jackpotInitialLocalPositions.ContainsKey(tr))
+            {
+                jackpotInitialLocalPositions[tr] = tr.localPosition;
+            }
+
+            Vector3 startPos = jackpotInitialLocalPositions[tr];
+            tr.localPosition = startPos;
+
+            Tween posTween = tr.DOLocalMoveY(startPos.y + jackpotLevitateHeight, jackpotLevitateDuration)
+                .SetEase(Ease.InOutSine)
+                .SetLoops(-1, LoopType.Yoyo)
+                .SetDelay(i * jackpotStaggerDelay);
+
+            jackpotPortraitTweens.Add(posTween);
+        }
+
+        // Set last, so an early return above leaves the flag false and the next event retries.
+        isJackpotLevitationRunning = true;
+    }
+
+    private void StopJackpotPortraitLevitation()
+    {
+        for (int i = 0; i < jackpotPortraitTweens.Count; i++)
+        {
+            if (jackpotPortraitTweens[i] != null && jackpotPortraitTweens[i].IsActive())
+            {
+                jackpotPortraitTweens[i].Kill();
+            }
+        }
+        jackpotPortraitTweens.Clear();
+
+        // Snap back to the captured resting position. DOTween.Kill on the target is a belt-and-
+        // braces sweep for a tween that somehow escaped the list; it's safe because nothing else
+        // tweens these objects — this class's tweens target the autoplay panel, the settings
+        // CanvasGroups, the sound panel and the win popup rect, and OCController's target its own
+        // resized objects, the slot, the logo and the two scroll rects. Re-check if that changes.
+        foreach (var kvp in jackpotInitialLocalPositions)
+        {
+            if (kvp.Key != null)
+            {
+                DOTween.Kill(kvp.Key);
+                kvp.Key.localPosition = kvp.Value;
+            }
+        }
+
+        isJackpotLevitationRunning = false;
     }
 
     #endregion

@@ -9,6 +9,7 @@ public class OCController : MonoBehaviour
     [SerializeField] private OrientationChange orientationChange;
     [SerializeField] private CanvasScaler canvasScaler;
     [SerializeField] private Transform slotObject;
+    internal Transform SlotObject => slotObject;
     [SerializeField] private List<RectTransform> resizedObjects = new List<RectTransform>();
     [SerializeField] private List<RectTransform> squareResizedObjects = new List<RectTransform>();
 
@@ -35,8 +36,10 @@ public class OCController : MonoBehaviour
     [Header("Slot Object Settings")]
     [SerializeField] private Vector3 landscapeSlotScale = Vector3.one;
     [SerializeField] private Vector3 portraitSlotScale = new Vector3(0.73f, 0.73f, 0.73f);
-    [SerializeField] private Vector3 landscapeSlotPosition = Vector3.zero;
-    [SerializeField] private Vector3 portraitSlotPosition = new Vector3(0f, -150f, 0f);
+    [SerializeField] private Vector3 landscapeSlotPosition = new Vector3(0f, -16.5f, 0f);
+    [SerializeField] private Vector3 portraitSlotPosition = new Vector3(0f, -368f, 0f);
+    internal Vector3 PortraitSlotPosition => portraitSlotPosition;
+    internal Vector3 LandscapeSlotPosition => landscapeSlotPosition;
 
     [Header("Logo Object Settings")]
     [SerializeField] private RectTransform logoObject;
@@ -52,28 +55,7 @@ public class OCController : MonoBehaviour
     [Header("Animation Settings")]
     [SerializeField] private float transitionDuration = 0.2f;
 
-    [Header("Jackpot Levitation - Portrait")]
-    [Tooltip("The four jackpot tier parents inside the portrait Top prefab. Each floats up and back " +
-             "down while the game is in portrait.")]
-    [SerializeField] private RectTransform grandJackpotPortraitParent;
-    [SerializeField] private RectTransform majorJackpotPortraitParent;
-    [SerializeField] private RectTransform minorJackpotPortraitParent;
-    [SerializeField] private RectTransform miniJackpotPortraitParent;
-    [SerializeField] private bool enableJackpotPortraitLevitation = true;
-    [SerializeField] private float jackpotLevitateHeight = 10f;
-    [SerializeField] private float jackpotLevitateDuration = 1.4f;
-    [SerializeField] private float jackpotStaggerDelay = 0.15f;
-
     private List<Tween> activeTweens = new List<Tween>();
-
-    // Levitation tweens are tracked separately from activeTweens on purpose: those are the
-    // one-shot orientation transitions and get killed at the top of every HandleOrientationChange,
-    // whereas these loop for as long as the game stays in portrait.
-    private readonly List<Tween> jackpotPortraitTweens = new List<Tween>();
-
-    // Each parent's resting position, captured the first time it levitates so the loop can always
-    // be returned to exactly where the layout put it.
-    private readonly Dictionary<Transform, Vector3> jackpotInitialLocalPositions = new Dictionary<Transform, Vector3>();
 
     private void Awake()
     {
@@ -98,10 +80,6 @@ public class OCController : MonoBehaviour
         {
             orientationChange.OnOrientationChangedInstance += HandleOrientationChange;
         }
-
-        // The event only fires on a *change*, so a session that starts in portrait would otherwise
-        // never levitate until the player rotated away and back.
-        if (orientationChange != null) UpdateJackpotPortraitLevitation(orientationChange.CurrentMode);
     }
 
     private void OnDisable()
@@ -111,9 +89,6 @@ public class OCController : MonoBehaviour
         {
             orientationChange.OnOrientationChangedInstance -= HandleOrientationChange;
         }
-
-        // Looping tweens outlive this component otherwise — nothing else would ever kill them.
-        StopJackpotPortraitLevitation();
     }
 
     private void HandleOrientationChange(OrientationChange.OrientationMode mode, int width, int height)
@@ -122,9 +97,6 @@ public class OCController : MonoBehaviour
 
         bool isMobilePortrait = (mode == OrientationChange.OrientationMode.MobilePortrait);
 
-        UpdateJackpotPortraitLevitation(mode);
-
-        // 1. Toggle Landscape vs Portrait Panel Objects
         if (landscapePanelObject != null)
         {
             landscapePanelObject.SetActive(!isMobilePortrait);
@@ -134,7 +106,6 @@ public class OCController : MonoBehaviour
             portraitPanelObject.SetActive(isMobilePortrait);
         }
 
-        // 2. Toggle Landscape vs Portrait Background Objects
         if (landscapeBackground != null)
         {
             landscapeBackground.SetActive(!isMobilePortrait);
@@ -144,14 +115,12 @@ public class OCController : MonoBehaviour
             portraitBackground.SetActive(isMobilePortrait);
         }
 
-        // 3. Update Canvas Scaler Reference Resolution
         if (canvasScaler != null)
         {
             Vector2 targetRefRes = isMobilePortrait ? portraitReferenceResolution : landscapeReferenceResolution;
             canvasScaler.referenceResolution = targetRefRes;
         }
 
-        // 4. Resize Target RectTransforms
         Vector2 targetSize = isMobilePortrait ? portraitResizedObjectSize : landscapeResizedObjectSize;
         if (resizedObjects != null)
         {
@@ -172,7 +141,6 @@ public class OCController : MonoBehaviour
             }
         }
 
-        // 4b. Resize Target RectTransforms (1920x1080 Landscape, 1920x1920 Portrait)
         Vector2 targetSquareSize = isMobilePortrait ? portraitSquareResizedObjectSize : landscapeSquareResizedObjectSize;
         if (squareResizedObjects != null)
         {
@@ -193,7 +161,6 @@ public class OCController : MonoBehaviour
             }
         }
 
-        // 5. Update Slot Object Scale and Position
         if (slotObject != null)
         {
             Vector3 targetScale = isMobilePortrait ? portraitSlotScale : landscapeSlotScale;
@@ -213,7 +180,6 @@ public class OCController : MonoBehaviour
             }
         }
 
-        // 6. Update Logo Object Scale and Position
         if (logoObject != null)
         {
             Vector3 targetScale = isMobilePortrait ? portraitLogoScale : landscapeLogoScale;
@@ -233,7 +199,6 @@ public class OCController : MonoBehaviour
             }
         }
 
-        // 7. Update Info Page Scroll Object Height (1080 for Landscape, 1920 for Mobile Portrait)
         if (infoPageScrollObject != null)
         {
             float targetHeight = isMobilePortrait ? 1920f : 1080f;
@@ -249,7 +214,6 @@ public class OCController : MonoBehaviour
             }
         }
 
-        // 8. Update Guide Scroll Object Height (1080 for Landscape, 1920 for Mobile Portrait)
         if (guideScrollObject != null)
         {
             float targetHeight = isMobilePortrait ? 1920f : 1080f;
@@ -265,98 +229,6 @@ public class OCController : MonoBehaviour
             }
         }
     }
-
-    #region Jackpot Portrait Levitation
-
-    // Portrait here means MobilePortrait only, matching HandleOrientationChange's own test — that's
-    // the mode where portraitPanelObject is actually shown, so in any other mode these objects are
-    // hidden and animating them would be wasted work.
-    private void UpdateJackpotPortraitLevitation(OrientationChange.OrientationMode mode)
-    {
-        if (mode == OrientationChange.OrientationMode.MobilePortrait)
-        {
-            StartJackpotPortraitLevitation();
-        }
-        else
-        {
-            StopJackpotPortraitLevitation();
-        }
-    }
-
-    private List<RectTransform> GetJackpotPortraitTransforms()
-    {
-        List<RectTransform> list = new List<RectTransform>();
-
-        if (grandJackpotPortraitParent != null) list.Add(grandJackpotPortraitParent);
-        if (majorJackpotPortraitParent != null) list.Add(majorJackpotPortraitParent);
-        if (minorJackpotPortraitParent != null) list.Add(minorJackpotPortraitParent);
-        if (miniJackpotPortraitParent != null) list.Add(miniJackpotPortraitParent);
-
-        return list;
-    }
-
-    private void StartJackpotPortraitLevitation()
-    {
-        if (!enableJackpotPortraitLevitation) return;
-
-        // Clears any previous run first, so repeated portrait entries can't stack tweens on the
-        // same objects.
-        StopJackpotPortraitLevitation();
-
-        List<RectTransform> portraitJackpots = GetJackpotPortraitTransforms();
-        if (portraitJackpots.Count == 0) return;
-
-        for (int i = 0; i < portraitJackpots.Count; i++)
-        {
-            RectTransform tr = portraitJackpots[i];
-
-            // Captured once and never overwritten: re-reading it on a later run would bake in
-            // whatever mid-float position the object happened to be at.
-            if (!jackpotInitialLocalPositions.ContainsKey(tr))
-            {
-                jackpotInitialLocalPositions[tr] = tr.localPosition;
-            }
-
-            Vector3 startPos = jackpotInitialLocalPositions[tr];
-            tr.localPosition = startPos;
-
-            Tween posTween = tr.DOLocalMoveY(startPos.y + jackpotLevitateHeight, jackpotLevitateDuration)
-                .SetEase(Ease.InOutSine)
-                .SetLoops(-1, LoopType.Yoyo)
-                .SetDelay(i * jackpotStaggerDelay);
-
-            jackpotPortraitTweens.Add(posTween);
-        }
-    }
-
-    private void StopJackpotPortraitLevitation()
-    {
-        for (int i = 0; i < jackpotPortraitTweens.Count; i++)
-        {
-            if (jackpotPortraitTweens[i] != null && jackpotPortraitTweens[i].IsActive())
-            {
-                jackpotPortraitTweens[i].Kill();
-            }
-        }
-        jackpotPortraitTweens.Clear();
-
-        // Snap back to the captured resting position. DOTween.Kill on the target is a belt-and-
-        // braces sweep for a tween that somehow escaped the list; it's safe here only because
-        // nothing else in this class tweens these objects — activeTweens covers a disjoint set
-        // (BG, InfoPageObject, GuidepageObject, SoundPanel, PopupObject, BlackFlim, RayCastBlocker,
-        // plus slotObject/logoObject/the two scroll objects). Re-check that if these parents are
-        // ever added to resizedObjects.
-        foreach (var kvp in jackpotInitialLocalPositions)
-        {
-            if (kvp.Key != null)
-            {
-                DOTween.Kill(kvp.Key);
-                kvp.Key.localPosition = kvp.Value;
-            }
-        }
-    }
-
-    #endregion
 
     private void KillActiveTweens()
     {

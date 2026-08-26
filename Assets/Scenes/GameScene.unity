@@ -686,7 +686,7 @@ MonoBehaviour:
   m_text: 500
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: 6048365d5f30801408b5f72c283ef874, type: 2}
-  m_sharedMaterial: {fileID: 8214354210935193778, guid: ce1a6a2787e954e95868ded5474408f3, type: 2}
+  m_sharedMaterial: {fileID: 8214354210935193778, guid: 6048365d5f30801408b5f72c283ef874, type: 2}
   m_fontSharedMaterials: []
   m_fontMaterial: {fileID: 0}
   m_fontMaterials: []
@@ -22636,14 +22636,6 @@ MonoBehaviour:
   infoPageScrollObject: {fileID: 1439971687}
   guideScrollObject: {fileID: 241912261}
   transitionDuration: 0.2
-  grandJackpotPortraitParent: {fileID: 102419027}
-  majorJackpotPortraitParent: {fileID: 657936229}
-  minorJackpotPortraitParent: {fileID: 2011981752}
-  miniJackpotPortraitParent: {fileID: 566114386}
-  enableJackpotPortraitLevitation: 1
-  jackpotLevitateHeight: 10
-  jackpotLevitateDuration: 1.4
-  jackpotStaggerDelay: 0.15
 --- !u!4 &873413470
 Transform:
   m_ObjectHideFlags: 0
@@ -22880,6 +22872,7 @@ MonoBehaviour:
   popupManager: {fileID: 1363796882}
   jsFunctCalls: {fileID: 1504510397}
   freeGameView: {fileID: 886059863}
+  orientationChange: {fileID: 1353408117}
   gameScreen: {fileID: 749700606}
   gameLogoObject: {fileID: 1043789824}
   betAmountText: {fileID: 2087443015}
@@ -23007,6 +23000,14 @@ MonoBehaviour:
   majorJackpotTextPortrait: {fileID: 421331491}
   minorJackpotTextPortrait: {fileID: 421331494}
   miniJackpotTextPortrait: {fileID: 421331493}
+  grandJackpotPortraitParent: {fileID: 102419027}
+  majorJackpotPortraitParent: {fileID: 657936229}
+  minorJackpotPortraitParent: {fileID: 2011981752}
+  miniJackpotPortraitParent: {fileID: 566114386}
+  enableJackpotPortraitLevitation: 1
+  jackpotLevitateHeight: 10
+  jackpotLevitateDuration: 1.4
+  jackpotStaggerDelay: 0.15
   expandShrinkButton: {fileID: 863488479}
   expandShrinkButtonPortrait: {fileID: 2090453117}
   spriteExpandIcon: {fileID: 8336299145276259775, guid: 35fefb9ce688d43ffa7c7e5775670f9e, type: 3}
@@ -30763,7 +30764,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f521a04de7f494272a617b2719edd271, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SocketIOManager
-  testToken: ca57e85b88d04b88b6a1f9aa8c06beb7
+  testToken: 55bc12c18da94c0e99b7c9ab9c99aee1
   gameManager: {fileID: 1206269883}
   uiManager: {fileID: 885496184}
   popupManager: {fileID: 1363796882}
@@ -34070,6 +34071,7 @@ MonoBehaviour:
   CanvasScaler: {fileID: 2095227328}
   transitionDuration: 0.2
   waitForRotation: 0.2
+  enablePortrait: 1
   androidKeyword: MB
   iphoneKeyword: IP
   mobileKeyword: mobile

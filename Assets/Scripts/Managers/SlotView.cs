@@ -53,8 +53,6 @@ public class SlotView : MonoBehaviour
     [SerializeField] private float spinSpeed = 6000f;
     [SerializeField] private float reelStartStagger = 0.08f;
     [SerializeField] private float reelStopStagger = 0.12f;
-    [Tooltip("Fixed delay after a spin starts before it's safe to write the real result into the display-block icons — long enough for them to have scrolled fully off-screen. Hand-tuned starting point (5-row block / spinSpeed); retune here if spinSpeed or reel spacing changes.")]
-    [SerializeField] private float resultPreloadDelay = 0.3f;
 
     [Header("Animation Settings - Casino Style")]
     [SerializeField] private float anticipationUpDistance = 20f;
@@ -130,9 +128,6 @@ public class SlotView : MonoBehaviour
     // after the fact — autoplay and free spins skip it while they run, and only the controller knows
     // when the round is actually over.
     private List<WinLine> lastWinLines;
-
-    private float lastSpinStartTime;
-    private Coroutine preloadResultCoroutine;
 
     // Which reel is being held back to tease a bonus this spin, or -1. Set before the reels start
     // stopping; StopSingleReel raises and clears the effect off its own landing events.
@@ -382,9 +377,8 @@ public class SlotView : MonoBehaviour
         }
     }
 
-    // Writes only the display-block sprites (no buffer reshuffle, no position touch) — used by
-    // SetReelSymbols above and, standalone, by the early result-preload path, which deliberately
-    // must not trigger a buffer reshuffle mid-spin.
+    // Writes only the display-block sprites (no buffer reshuffle, no position touch) — the
+    // sprite half of SetReelSymbols above.
     private void WriteDisplayBlockSprites(int columnIndex, List<int> visibleSymbolIds)
     {
         if (columnIndex >= reelImagesList.Count) return;
@@ -406,54 +400,6 @@ public class SlotView : MonoBehaviour
                 ApplySymbol(reel.displayImages[row], symbolId, manageRaycast: true);
             }
         }
-    }
-
-    // Writes the real result into the display block as soon as it's known, instead of waiting
-    // until the reel is told to stop — timed so the write happens while those icons are still
-    // safely off-screen mid-spin, avoiding a visible "pop" of new content appearing. StopSingleReel
-    // still writes the same values again when the reel actually lands (a deliberate, harmless
-    // safety net for the early-manual-stop case, where the safe-delay window may not have
-    // elapsed yet).
-    internal void PreloadResultSprites(List<List<int>> resultMatrix)
-    {
-        if (resultMatrix == null) return;
-
-        if (preloadResultCoroutine != null)
-        {
-            StopCoroutine(preloadResultCoroutine);
-        }
-        preloadResultCoroutine = StartCoroutine(PreloadResultSpritesRoutine(resultMatrix));
-    }
-
-    private IEnumerator PreloadResultSpritesRoutine(List<List<int>> resultMatrix)
-    {
-        float waitTime = RemainingPreloadDelay();
-        if (waitTime > 0f)
-        {
-            yield return new WaitForSeconds(waitTime);
-        }
-
-        for (int col = 0; col < ReelCount; col++)
-        {
-            if (col < resultMatrix.Count)
-            {
-                WriteDisplayBlockSprites(col, resultMatrix[col]);
-            }
-        }
-
-        preloadResultCoroutine = null;
-    }
-
-    // How long (in seconds) to wait after a spin starts before it's safe to write the real result
-    // sprites into the display-block icons without the swap being visible — resultPreloadDelay is
-    // a hand-tuned constant (all 3 reels share the same buffer geometry, so one shared value is
-    // safe for all of them) rather than computed from reel geometry. We only wait for whatever's
-    // left of that window relative to how long the spin has already been running — if the result
-    // arrives late (window already elapsed), no extra delay is added.
-    private float RemainingPreloadDelay()
-    {
-        float elapsed = Time.time - lastSpinStartTime;
-        return Mathf.Max(0f, resultPreloadDelay - elapsed);
     }
 
     private Sprite GetSymbolSprite(int symbolId)
@@ -542,15 +488,6 @@ public class SlotView : MonoBehaviour
 
         isSpinning = true;
         KillAllTweens();
-
-        // Cancel any leftover preload from a previous spin so it can't fire late and overwrite
-        // this new spin's icons mid-flight.
-        if (preloadResultCoroutine != null)
-        {
-            StopCoroutine(preloadResultCoroutine);
-            preloadResultCoroutine = null;
-        }
-        lastSpinStartTime = Time.time;
 
         DisableAllOverlays();
 

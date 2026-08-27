@@ -435,13 +435,6 @@ public class GameManager : MonoBehaviour
     {
         lastResult = result;
 
-        // Hand the result to SlotView as soon as it's known, so it can write the display-block
-        // sprites early (while still safely off-screen mid-spin) instead of at stop-time.
-        if (slotView != null && result.resultMatrix != null)
-        {
-            slotView.PreloadResultSprites(result.resultMatrix);
-        }
-
         // Update the round's numbers as soon as the response lands so the displays never lag the
         // reels. Everything here is per-spin fact from the server plus our own running totals.
         if (isInFreeSpins)

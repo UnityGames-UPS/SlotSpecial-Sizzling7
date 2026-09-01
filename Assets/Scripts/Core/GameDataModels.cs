@@ -295,8 +295,20 @@ public class SpinPayload
     public bool isFreeSpin;
 }
 
+// Clicking a jackpot tier asks the platform to open its own jackpot overlay. Fire-and-forget —
+// the server sends no direct reply; any resulting value change arrives on the usual jackpot:sync.
+[Serializable]
+public class JackpotOpenRequest
+{
+    public string type = "JACKPOT_OPEN";
+    public JackpotOpenPayload payload = new JackpotOpenPayload();
+}
 
-
+[Serializable]
+public class JackpotOpenPayload
+{
+    public string tier;
+}
 
 #endregion
 
@@ -475,6 +487,16 @@ public class AuthData
 #endregion
 
 #region Enums
+
+// Which platform jackpot tier a button opens. Deliberately not the GameObject's name: the wire
+// strings live in SocketIOManager.ToTierString, so renaming a button can't change what is sent.
+public enum JackpotTier
+{
+    Grand,
+    Major,
+    Minor,
+    Mini
+}
 
 public enum GameState
 {

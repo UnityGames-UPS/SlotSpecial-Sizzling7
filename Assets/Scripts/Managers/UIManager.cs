@@ -197,6 +197,20 @@ public class UIManager : MonoBehaviour
     private readonly List<Tween> jackpotPortraitTweens = new List<Tween>();
     private bool isJackpotLevitationRunning;
 
+    // A jackpot button and the tier it opens. The tier is stated here rather than read from the
+    // GameObject's name, so renaming or duplicating a button can't change what is sent.
+    [System.Serializable]
+    public class JackpotButton
+    {
+        public Button button;
+        public JackpotTier tier;
+    }
+
+    [Header("Platform Jackpot Buttons")]
+    [Tooltip("All eight tier buttons — the four landscape and the four portrait — each paired with " +
+             "the tier it opens. Landscape and portrait entries share a tier.")]
+    [SerializeField] private List<JackpotButton> jackpotButtons = new List<JackpotButton>();
+
     [Header("Expand-Shrink Control (Sprite-Swapped Toggle)")]
     [SerializeField] private Button expandShrinkButton;
     [SerializeField] private Button expandShrinkButtonPortrait;
@@ -286,6 +300,7 @@ public class UIManager : MonoBehaviour
         SetupSettingsPanel();
         SetupGameRulesPanel();
         SetupGuidePanel();
+        SetupJackpotButtons();
 
         InitializeExpandShrink();
 
@@ -523,6 +538,33 @@ public class UIManager : MonoBehaviour
         if (guideOpenButtonPortrait) guideOpenButtonPortrait.onClick.AddListener(OpenGuidePanel);
 
         if (guideBackButton) guideBackButton.onClick.AddListener(() => { AudioManager.Instance?.PlayPopupClose(); CloseGuidePanel(); });
+    }
+
+    // Asks the platform to open its jackpot overlay for the clicked tier. SocketIOManager owns the
+    // debounce, so a rapid second click is dropped there rather than needing to be guarded here.
+    private void SetupJackpotButtons()
+    {
+        if (jackpotButtons == null) return;
+
+        for (int i = 0; i < jackpotButtons.Count; i++)
+        {
+            JackpotButton entry = jackpotButtons[i];
+            if (entry == null || entry.button == null) continue;
+
+            // Copied into a local so each listener closes over its own tier rather than the loop
+            // variable, and so a later Inspector edit can't change what an existing listener sends.
+            JackpotTier tier = entry.tier;
+
+            entry.button.onClick.RemoveAllListeners();
+            entry.button.onClick.AddListener(() => OnJackpotButtonPressed(tier));
+        }
+    }
+
+    private void OnJackpotButtonPressed(JackpotTier tier)
+    {
+        if (gameManager == null || gameManager.socketManager == null) return;
+
+        gameManager.socketManager.SendJackpotOpen(tier);
     }
 
     #endregion

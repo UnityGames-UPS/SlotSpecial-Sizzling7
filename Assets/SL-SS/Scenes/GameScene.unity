@@ -31162,7 +31162,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f521a04de7f494272a617b2719edd271, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SocketIOManager
-  testToken: 586bfaf7ea9e4013b3fbce375446788a
+  testToken: 8da2e5a278d44263814d379eee8f1a65
   gameManager: {fileID: 1206269883}
   uiManager: {fileID: 885496184}
   popupManager: {fileID: 1363796882}
@@ -45847,7 +45847,7 @@ MonoBehaviour:
     THE NUMBER OF FREE GAMES FEATURES REMAINING
     IS DISPLAYED IN THE TOTAL BET IS THE SAME AS THE GAME THAT TRIGGERED THE FEATURE'
   m_isRightToLeft: 0
-  m_fontAsset: {fileID: 11400000, guid: 60630e4b10113ec408a4139509257743, type: 2}
+  m_fontAsset: {fileID: 11400000, guid: b3040874e069f8c499f1bb1eeea49d89, type: 2}
   m_sharedMaterial: {fileID: 2954594708302655486, guid: 60630e4b10113ec408a4139509257743, type: 2}
   m_fontSharedMaterials: []
   m_fontMaterial: {fileID: 0}
@@ -45914,7 +45914,7 @@ MonoBehaviour:
   m_margin: {x: 0, y: 0, z: 0, w: 0}
   m_isUsingLegacyAnimationComponent: 0
   m_isVolumetricText: 0
-  m_hasFontAssetChanged: 0
+  m_hasFontAssetChanged: 1
   m_baseMaterial: {fileID: 0}
   m_maskOffset: {x: 0, y: 0, z: 0, w: 0}
 --- !u!222 &1813231293

@@ -752,7 +752,7 @@ MonoBehaviour:
   m_margin: {x: 0, y: 0, z: 0, w: 0}
   m_isUsingLegacyAnimationComponent: 0
   m_isVolumetricText: 0
-  m_hasFontAssetChanged: 1
+  m_hasFontAssetChanged: 0
   m_baseMaterial: {fileID: 0}
   m_maskOffset: {x: 0, y: 0, z: 0, w: 0}
 --- !u!222 &41941302
@@ -22924,9 +22924,9 @@ MonoBehaviour:
   landscapeSquareResizedObjectSize: {x: 1920, y: 1080}
   portraitSquareResizedObjectSize: {x: 1920, y: 1920}
   landscapeSlotScale: {x: 1, y: 1, z: 1}
-  portraitSlotScale: {x: 0.85, y: 0.85, z: 0.85}
+  portraitSlotScale: {x: 0.75, y: 0.75, z: 0.75}
   landscapeSlotPosition: {x: 0, y: 0, z: 0}
-  portraitSlotPosition: {x: 0, y: -402, z: 0}
+  portraitSlotPosition: {x: 0, y: -445, z: 0}
   logoObject: {fileID: 1043789825}
   landscapeLogoScale: {x: 1, y: 1, z: 1}
   portraitLogoScale: {x: 1.27, y: 1.27, z: 1.27}
@@ -31162,7 +31162,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f521a04de7f494272a617b2719edd271, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SocketIOManager
-  testToken: 8da2e5a278d44263814d379eee8f1a65
+  testToken: b2db304241044e89a1b283dba9fe222d
   gameManager: {fileID: 1206269883}
   uiManager: {fileID: 885496184}
   popupManager: {fileID: 1363796882}
